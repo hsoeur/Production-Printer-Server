@@ -1,0 +1,28 @@
+J
+
+; conf imprimante (vitesse...)
+H 100
+
+; format etiquette
+S l1;0,0,17,19,38
+
+; option impression
+O R,T,p
+
+T:SERIAL;10,15,0,3,10;[SER:50, -1][I]
+
+; impression code barre
+B 2,1,0,DATAMATRIX+WS2,0.3;12/SEM-00000171;000000;;;18/02/2025
+
+
+; impression textes
+T 16,9,0,5,pt7;12/SEM-00000171
+
+T 25,15,0,3,pt8;[SERIAL][C:0][D:6,0]
+
+; impression images (a = sur la memory card)
+I :PCEDEEE;2,10,0,1,1,a;PCEDEEE
+I :PAMPH;23,0,0,1,1,a;PAMPH
+
+; nb d'�tiquette
+A 50

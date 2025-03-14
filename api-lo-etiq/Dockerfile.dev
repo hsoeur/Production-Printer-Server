@@ -1,0 +1,28 @@
+# Étape 1 : Build de l’application avec le SDK .NET 8.0
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Supprime les caches NuGet pour éviter les erreurs
+RUN dotnet nuget locals all --clear
+
+# Copie uniquement le fichier .csproj et restauration des dépendances
+COPY ["api-lo-etiq.csproj", "./api-lo-etiq/"]
+WORKDIR /src/api-lo-etiq
+RUN dotnet restore --disable-parallel --ignore-failed-sources
+
+# Copie du reste des fichiers et compilation
+COPY . .
+RUN dotnet publish -c Release -o /app/publish
+
+# Étape 2 : Utilisation du SDK pour exécuter l'API avec hot reload
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS final
+WORKDIR /app
+
+# Copie de l’application compilée
+COPY --from=build /app/publish .
+
+# Exposition du port de l’API
+EXPOSE 7001
+
+# Lancement de l’application avec hot reload
+CMD ["dotnet", "swatch", "run", "--urls", "http://0.0.0.0:7001"]

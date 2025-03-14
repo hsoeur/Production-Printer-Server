@@ -1,0 +1,5 @@
+open 192.168.1.200
+ftpprint
+print
+put out_file_art_borne.txt
+bye

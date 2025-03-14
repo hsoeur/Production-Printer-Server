@@ -1,0 +1,48 @@
+trigger:
+- master
+
+pool:
+  name: Default
+  demands:
+   - agent.name -equals VM-DEVOPS
+
+variables:
+  buildConfiguration: 'Release'
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+
+steps:
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '8.x'
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
+
+- task: NuGetToolInstaller@1
+
+- task: NuGetCommand@2
+  inputs:
+    restoreSolution: $(solution)
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: $(solution)
+    arguments: '--configuration $(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    projects: '**/*.csproj'
+    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+
+    
+- task: WindowsMachineFileCopy@2
+  inputs:
+    SourcePath: '$(build.artifactStagingDirectory)'
+    MachineNames: '192.168.1.104'
+    AdminUserName: 'AMPHI-PROD\Adminprod'
+    AdminPassword: 'Paris2024JO*'
+    TargetPath: '\\vm-app\Deploy\api\apietiq'
+    CleanTargetBeforeCopy: true
