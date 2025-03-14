@@ -11,7 +11,7 @@ variables:
   IMAGE_NAME: 'api_etiq_image'
   SERVER_USER: 'adminprod'  
   SERVER_IP: '192.168.1.104'  
-  SERVER_PATH: 'C:\Deploy\api_etiq_container'  
+  SERVER_PATH: 'C:\Deploy\containers\api_etiq_container'  
   CONTAINER_NAME: 'api_etiq_container'
   SSH_PASSWORD: 'Paris2024JO*'  # Variable secrète stockée dans Azure DevOps
   APP_PORT: '7001'  # Port d'écoute de l'API
