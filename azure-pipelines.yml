@@ -1,5 +1,5 @@
 trigger:
-- master
+- main
 
 pool:
   name: Default
@@ -7,42 +7,86 @@ pool:
    - agent.name -equals VM-DEVOPS
 
 variables:
-  buildConfiguration: 'Release'
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
+  BUILD_CONFIGURATION: 'Release'
+  IMAGE_NAME: 'api_etiq_image'
+  SERVER_USER: 'adminprod'  
+  SERVER_IP: '192.168.1.104'  
+  SERVER_PATH: 'C:\Deploy\api_etiq_container'  
+  CONTAINER_NAME: 'api_etiq_container'
+  SSH_PASSWORD: 'Paris2024JO*'  # Variable secrète stockée dans Azure DevOps
+  APP_PORT: '7001'  # Port d'écoute de l'API
 
-steps:
-- task: UseDotNet@2
-  inputs:
-    packageType: 'sdk'
-    version: '8.x'
-    installationPath: $(Agent.ToolsDirectory)/dotnet
-
-
-- task: NuGetToolInstaller@1
-
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: $(solution)
-
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'build'
-    projects: $(solution)
-    arguments: '--configuration $(buildConfiguration)'
-
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'publish'
-    projects: '**/*.csproj'
-    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-
+stages:
+- stage: Build
+  displayName: "🔨 Build Docker Image"
+  jobs:
+  - job: Build
+    displayName: "🐳 Build Docker"
+    steps:
     
-- task: WindowsMachineFileCopy@2
-  inputs:
-    SourcePath: '$(build.artifactStagingDirectory)'
-    MachineNames: '192.168.1.104'
-    AdminUserName: 'AMPHI-PROD\Adminprod'
-    AdminPassword: 'Paris2024JO*'
-    TargetPath: '\\vm-app\Deploy\api\apietiq'
-    CleanTargetBeforeCopy: true
+    - script: |
+        echo "📂 Contenu du répertoire avant le build :"
+        dir /s
+      displayName: "📂 Vérification des fichiers"
+
+    - script: |
+        echo "🏗️ Construction de l'image Docker..."
+        docker build --build-arg APP_PORT=$(APP_PORT) -t $(IMAGE_NAME):latest -f api-lo-etiq/Dockerfile.prod .
+      displayName: "🐳 Build Docker"
+
+    - script: |
+        echo "📦 Sauvegarde de l'image Docker en fichier..."
+        docker save $(IMAGE_NAME):latest -o $(IMAGE_NAME).tar
+      displayName: "📦 Sauvegarde en fichier"
+
+    - task: PublishBuildArtifacts@1
+      displayName: "📤 Upload de l'image dans Azure DevOps"
+      inputs:
+        pathToPublish: "$(IMAGE_NAME).tar"
+        artifactName: "docker-image"
+
+- stage: Deploy
+  displayName: "🚀 Déploiement sur 192.168.1.104"
+  dependsOn: Build
+  jobs:
+  - job: Deploy
+    displayName: "📡 Déploiement SSH"
+    steps:
+    - task: DownloadBuildArtifacts@0
+      displayName: "📥 Télécharger l'image depuis Azure DevOps"
+      inputs:
+        buildType: 'current'
+        artifactName: 'docker-image'
+        downloadPath: '$(Pipeline.Workspace)'
+
+    - script: |
+        echo "🔌 Connexion SSH et transfert de l'image..."
+        echo $(SSH_PASSWORD) | plink -batch -pw $(SSH_PASSWORD) $(SERVER_USER)@$(SERVER_IP) "mkdir -p $(SERVER_PATH)"
+        echo $(SSH_PASSWORD) | pscp -batch -pw $(SSH_PASSWORD) $(Pipeline.Workspace)/docker-image/$(IMAGE_NAME).tar $(SERVER_USER)@$(SERVER_IP):$(SERVER_PATH)/
+
+      displayName: "📡 Transfert de l'image Docker"
+
+    - script: |
+        echo "🛑 Arrêt du conteneur..."
+        echo $(SSH_PASSWORD) | plink -batch -pw $(SSH_PASSWORD) $(SERVER_USER)@$(SERVER_IP) "docker stop $(CONTAINER_NAME) || exit 0"
+      displayName: "🛑 Arrêter le conteneur en cours"
+
+    - script: |
+        echo "🗑️ Suppression du conteneur..."
+        echo $(SSH_PASSWORD) | plink -batch -pw $(SSH_PASSWORD) $(SERVER_USER)@$(SERVER_IP) "docker rm $(CONTAINER_NAME) || exit 0"
+      displayName: "🗑️ Supprimer le conteneur existant"
+
+    - script: |
+        echo "🔥 Suppression de l'ancienne image Docker..."
+        echo $(SSH_PASSWORD) | plink -batch -pw $(SSH_PASSWORD) $(SERVER_USER)@$(SERVER_IP) "docker rmi $(IMAGE_NAME):latest || exit 0"
+      displayName: "🔥 Supprimer l'ancienne image Docker"
+
+    - script: |
+        echo "📦 Chargement de la nouvelle image Docker..."
+        echo $(SSH_PASSWORD) | plink -batch -pw $(SSH_PASSWORD) $(SERVER_USER)@$(SERVER_IP) "docker load -i $(SERVER_PATH)/$(IMAGE_NAME).tar"
+      displayName: "📦 Charger la nouvelle image Docker"
+
+    - script: |
+        echo "🚀 Déploiement du nouveau conteneur..."
+        echo $(SSH_PASSWORD) | plink -batch -pw $(SSH_PASSWORD) $(SERVER_USER)@$(SERVER_IP) "docker run -d --name $(CONTAINER_NAME) -p $(APP_PORT):$(APP_PORT) -v C:/templates:/app/templates $(IMAGE_NAME):latest"
+      displayName: "🚀 Démarrer le nouveau conteneur avec montage de volume"
