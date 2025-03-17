@@ -109,9 +109,16 @@ namespace api_lo_etiq.Services.Printer
             CommandGenerator commandGenerator = new CommandGenerator(commandBrady);
             commandGenerator.Execute();
         }
-        public bool PrintFile()
+        public bool PrintFile(string usage)
         {
-            string printer = _configuration["Printer:OtherThanLot"];
+            string printer = _configuration["Printer:Share"];
+
+            if (usage != "Etiquette Lot")
+            {
+                printer = _configuration["Printer:OtherThanLot"];
+            }
+
+            
             string user = "AMPHI-PROD\\adminprod"; // Utilisateur avec domaine
             string password = "Paris2024JO*"; // Mot de passe
 
@@ -119,7 +126,7 @@ namespace api_lo_etiq.Services.Printer
             string printerLinux = $"//{printer.Replace("\\\\", "").Replace("\\", "/")}";
 
             // Construction de la commande `smbclient`
-            string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put /app/templates/test.txt\"";
+            string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put out_file.txt\"";
 
             Log.Information($"CommandBrady : {commandBrady}");
 

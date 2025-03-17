@@ -214,167 +214,6 @@ namespace api_lo_etiq.Controllers
             }
         }
 
-        /*
-        [HttpGet]
-        [ProducesResponseType(200)]
-        public IActionResult PrintLot(string uidOperateur, string uidOrdreFabrication, string uidUsage)
-        {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            Log.Information("GenerateTemplate called with uidOperateur: {uidOperateur}, uidOrdreFabrication: {uidOrdreFabrication}, uidUsage: {uidUsage}", uidOperateur, uidOrdreFabrication, uidUsage);
-
-            string date = DateTime.Now.ToString("dd/MM/yyyy");
-
-            OrdreFabrication ordreFabrication = _apiData.GetOrdreFabricationWithUidOF(uidOrdreFabrication).Result;
-
-            if (ordreFabrication == null)
-            {
-                Log.Warning("OrdreFabrication not found for uidOrdreFabrication: {uidOrdreFabrication}", uidOrdreFabrication);
-                return Ok("ERR_OF_NOT_FOUND_IN_DB");
-            }
-                
-            UsageCorrespondanceProduit usageCorrespondanceProduit = _apiData.GetUsageCorrespondanceProduitWithUidProduitUidUsage(ordreFabrication.UidProduit, uidUsage).Result;
-
-            if (usageCorrespondanceProduit == null)
-            {
-                Log.Warning("UsageCorrespondanceProduit not found for uidProduit: {uidProduit} and uidUsage: {uidUsage}", ordreFabrication.UidProduit, uidUsage);
-                return Ok("ERR_USAGE_NOT_FOUND_IN_DB");
-            }
-
-            VersionArticle versionArticle = _apiData.GetVersionWithUidArticle(ordreFabrication.UidProduit).Result;
-
-            if (versionArticle == null)
-            {
-                Log.Warning("VersionArticle not found for uidProduit: {uidProduit}", ordreFabrication.UidProduit);
-                return Ok("ERR_VERSION_NOT_FOUND");
-                
-            }
-
-            _labelTemplateProcessor.ProcessTemplateLot(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, uidOperateur, _configuration);
-            int res = _labelsCreator.ProcessAndCreateLabelsLot(date, uidOperateur, ordreFabrication, usageCorrespondanceProduit, versionArticle);
-
-            if (res == -1)
-            {
-                Log.Warning("Label already in database for uidOrdreFabrication: {uidOrdreFabrication}, uidOperateur: {uidOperateur}", uidOrdreFabrication, uidOperateur);
-                return Ok("ERR_ETI_ALREADY_IN_DB");
-            }
-
-            Log.Information("Template generated successfully for uidOrdreFabrication: {uidOrdreFabrication}, uidOperateur: {uidOperateur}", uidOrdreFabrication, uidOperateur);
-            stopwatch.Stop();
-            Log.Information("PrintLot method executed in {ElapsedMilliseconds} ms", stopwatch.ElapsedMilliseconds);
-            return Ok("SUCCESS");
-        }
-
-        [HttpGet]
-        [ProducesResponseType(200)]
-        public IActionResult PrintMontage(string uidOperateur,string uidOrdreFabrication, string uidUsage)
-        {
-            Log.Information("GenerateTemplate called with uidOperateur: {uidOrdreFabrication}",uidOrdreFabrication);
-
-            string date = DateTime.Now.ToString("dd/MM/yyyy");
-
-            OrdreFabrication ordreFabrication = _apiData.GetOrdreFabricationWithUidOF(uidOrdreFabrication).Result;
-
-            if (ordreFabrication == null)
-            {
-                Log.Warning("OrdreFabrication not found for uidOrdreFabrication: {uidOrdreFabrication}", uidOrdreFabrication);
-                return Ok("ERR_OF_NOT_FOUND_IN_DB");
-            }
-
-            UsageCorrespondanceProduit usageCorrespondanceProduit = _apiData.GetUsageCorrespondanceProduitWithUidProduitUidUsage(ordreFabrication.UidProduit, uidUsage).Result;
-
-            if (usageCorrespondanceProduit == null)
-            {
-                Log.Warning("UsageCorrespondanceProduit not found for uidProduit: {uidProduit} and uidUsage: {uidUsage}", ordreFabrication.UidProduit, uidUsage);
-                return Ok("ERR_USAGE_NOT_FOUND_IN_DB");
-            }
-
-            _labelTemplateProcessor.ProcessTemplateMontage(ordreFabrication, usageCorrespondanceProduit, uidOperateur, date, _configuration);
-            int res = _labelsCreator.ProcessAndCreateLabelsMontage(date, uidOperateur, ordreFabrication, usageCorrespondanceProduit);
-
-            if (res == -1)
-            {
-                Log.Warning("Label already in database for uidOrdreFabrication: {uidOrdreFabrication}, uidOperateur: {uidOperateur}", uidOrdreFabrication, uidOperateur);
-                return Ok("ERR_ETI_ALREADY_IN_DB");
-            }
-
-            return Ok("SUCCESS");
-        }
-
-        [HttpGet]
-        [ProducesResponseType(200)]
-        public IActionResult PrintEmballage(string uidOperateur, string uidOrdreFabrication, string uidUsage)
-        {
-
-            Log.Information("GenerateTemplate called with uidOperateur: {uidOrdreFabrication}", uidOrdreFabrication);
-
-            string date = DateTime.Now.ToString("dd/MM/yyyy");
-
-            OrdreFabrication ordreFabrication = _apiData.GetOrdreFabricationWithUidOF(uidOrdreFabrication).Result;
-
-            if (ordreFabrication == null)
-            {
-                Log.Warning("OrdreFabrication not found for uidOrdreFabrication: {uidOrdreFabrication}", uidOrdreFabrication);
-                return Ok("ERR_OF_NOT_FOUND_IN_DB");
-            }
-
-            UsageCorrespondanceProduit usageCorrespondanceProduit = _apiData.GetUsageCorrespondanceProduitWithUidProduitUidUsage(ordreFabrication.UidProduit, uidUsage).Result;
-
-            if (usageCorrespondanceProduit == null)
-            {
-                Log.Warning("USageCorrespondance not found for of: {uidProduit} and usage: {uidUsage}", ordreFabrication.UidProduit, uidUsage);
-                return Ok("ERR_USAGE_NOT_FOUND_IN_DB");
-            }
-
-            _labelTemplateProcessor.ProcessTemplateEmballage(ordreFabrication, usageCorrespondanceProduit, uidOperateur, date, _configuration);
-            int res = _labelsCreator.ProcessAndCreateLabelsEmballage(date, uidOperateur, ordreFabrication, usageCorrespondanceProduit);
-
-            if (res == -1)
-            {
-                Log.Warning("Label already in database for uidOrdreFabrication: {uidOrdreFabrication}, uidOperateur: {uidOperateur}", uidOrdreFabrication, uidOperateur);
-                return Ok("ERR_ETI_ALREADY_IN_DB");
-            }
-
-            return Ok("SUCCESS");
-        }
-
-        [HttpGet]
-        [ProducesResponseType(200)]
-        public IActionResult PrintAccessoire(string uidOperateur, string uidOrdreFabrication, string uidUsage)
-        {
-
-            Log.Information("GenerateTemplate called with uidOperateur: {uidOrdreFabrication}", uidOrdreFabrication);
-
-            string date = DateTime.Now.ToString("dd/MM/yyyy");
-
-            OrdreFabrication ordreFabrication = _apiData.GetOrdreFabricationWithUidOF(uidOrdreFabrication).Result;
-
-            if (ordreFabrication == null)
-            {
-                Log.Warning("OrdreFabrication not found for uidOrdreFabrication: {uidOrdreFabrication}", uidOrdreFabrication);
-                return Ok("ERR_OF_NOT_FOUND_IN_DB");
-            }
-
-            UsageCorrespondanceProduit usageCorrespondanceProduit = _apiData.GetUsageCorrespondanceProduitWithUidProduitUidUsage(ordreFabrication.UidProduit, uidUsage).Result;
-
-            if (usageCorrespondanceProduit == null)
-            {
-                Log.Warning("USageCorrespondance not found for of: {uidProduit} and usage: {uidUsage}", ordreFabrication.UidProduit, uidUsage);
-                return Ok("ERR_USAGE_NOT_FOUND_IN_DB");
-            }
-
-            _labelTemplateProcessor.ProcessTemplateAccessoire(ordreFabrication, usageCorrespondanceProduit, uidOperateur, date, _configuration);
-            int res = _labelsCreator.ProcessAndCreateLabelsAccessoire(date, uidOperateur, ordreFabrication, usageCorrespondanceProduit);
-
-            if (res == -1)
-            {
-                Log.Warning("Label already in database for uidOrdreFabrication: {uidOrdreFabrication}, uidOperateur: {uidOperateur}", uidOrdreFabrication, uidOperateur);
-                return Ok("ERR_ETI_ALREADY_IN_DB");
-            }
-
-            return Ok("SUCCESS");
-        }
-        */
-
         /// <summary>
         /// Méthode Reprint responsable de la réimpression d'étiquette de production.
         /// </summary>
@@ -432,7 +271,7 @@ namespace api_lo_etiq.Controllers
                 _labelTemplateProcessor.ProcessTemplateReprint(etiquette, ordre, usage, version, article, _configuration);
                 Log.Information("Reprint action called with " + usage.Usage + " ID");
 
-                _printer.ExecutePrinting(usage.Usage);
+                _printer.PrintFile(usage.Usage);
             }
             catch(Exception ex)
             {
@@ -494,7 +333,7 @@ namespace api_lo_etiq.Controllers
                 _labelTemplateProcessor.ProcessTemplateCommon(ordre, version, usage, date, uidOperateur ,article, _configuration);
                 Log.Information("Reprint action called with " + usage.Usage + " ID");
 
-                _printer.ExecutePrinting(usage.Usage);
+                _printer.PrintFile(usage.Usage);
             }
             catch (Exception ex)
             {
