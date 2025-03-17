@@ -18,7 +18,7 @@ namespace api_lo_etiq.Services.Printer
             string ftpServer = "192.168.1.200";
             string ftpUser = "ftpprint";
             string ftpPassword = "print";
-            string fileName = "/app/templates/out_file_art_borne.txt";
+            string fileName = "out_file_art_borne.txt";
 
             Log.Debug("🚀 Début du processus FTP...\n");
 
