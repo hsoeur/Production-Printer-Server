@@ -18,7 +18,7 @@ namespace api_lo_etiq.Services.Printer
             string ftpServer = "192.168.1.200";
             string ftpUser = "ftpprint";
             string ftpPassword = "print";
-            string fileName = "out_file_art_borne.txt";
+            string fileName = "/app/templates/out_file_art_borne.txt";
 
             Log.Debug("🚀 Début du processus FTP...\n");
 
@@ -31,60 +31,50 @@ namespace api_lo_etiq.Services.Printer
             ExecuteFtpCommand(ftpServer, ftpUser, ftpPassword, fileName);
         }
 
-        static void ExecuteFtpCommand(string server, string user, string password, string file)
+        public void ExecuteFtpCommand(string ftpServer, string ftpUser, string ftpPassword, string filePath)
         {
-            string tempFile = "ftp_script.txt";
+            string ftpUrl = $"ftp://{ftpUser}:{ftpPassword}@{ftpServer}/";
 
-            Log.Debug($"📄 Création du script FTP '{tempFile}'...");
+            // Construire la commande `curl` pour transférer le fichier via FTP
+            string command = $"curl -T {filePath} {ftpUrl}";
 
-            // Contenu du script FTP sans le mot de passe
-            string ftpScript = $"open {server}\n" +
-                               $"{user}\n" +  // Envoi du nom d'utilisateur
-                               $"{password}\n" +  // Envoi du mot de passe
-                               $"put {file}\n" +
-                               $"bye";
+            Log.Information($"🚀 Envoi du fichier {filePath} vers {ftpServer}...");
 
-            File.WriteAllText(tempFile, ftpScript);
-
-            Log.Debug("✅ Script FTP créé avec succès !");
-            Log.Debug("📡 Connexion au serveur FTP...");
-
-            // Utilisation de PowerShell pour injecter les entrées utilisateur automatiquement
-            string command = $"echo {password} | ftp -s:{tempFile}";
-
-            ProcessStartInfo psi = new ProcessStartInfo
+            try
             {
-                FileName = "cmd.exe",
-                Arguments = $"/c {command}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = "/bin/sh",
+                    Arguments = $"-c \"{command}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
 
-            Process process = new Process { StartInfo = psi };
-            process.Start();
+                using Process process = new Process { StartInfo = startInfo };
+                process.Start();
 
-            // Lire et afficher la sortie en temps réel
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
 
-            process.WaitForExit();
+                process.WaitForExit();
+                int exitCode = process.ExitCode;
 
-            Log.Debug("\n📢 Logs FTP :");
-            Log.Debug(output);
+                Log.Information($"📜 Sortie : {output}");
+                if (!string.IsNullOrEmpty(error))
+                {
+                    Log.Error($"❌ Erreur FTP : {error}");
+                }
 
-            if (!string.IsNullOrWhiteSpace(error))
-            {
-                Log.Debug($"❌ ERREUR FTP : {error}");
+                Console.WriteLine($"✅ Envoi terminé (Code de sortie : {exitCode})");
             }
-
-            Log.Debug("\n📦 Nettoyage du fichier temporaire...");
-            File.Delete(tempFile);
-            Log.Debug("🗑️ Fichier temporaire supprimé avec succès.");
-
-            Log.Debug("\n✅ Processus FTP terminé !");
+            catch (Exception ex)
+            {
+                Log.Error($"🚨 Erreur lors de l'envoi FTP : {ex.Message}");
+            }
         }
+
 
         /// <summary>
         /// Méthode qui exécute la commande d'impression sur le fichier généré à partir du template.
