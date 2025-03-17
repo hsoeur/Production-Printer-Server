@@ -358,7 +358,7 @@ namespace api_lo_etiq.Controllers
             }
             catch (Exception ex)
             {
-                Log.Error("PrintArtBorne gone wrong.");
+                Log.Error(ex.Message) ;
                 return StatusCode(500, ex.Message);
             }
         }
