@@ -72,7 +72,7 @@ namespace api_lo_etiq.Controllers
         {
             try
             {
-                _printer.PrintFile();
+                _printer.PrintFile("Etiquette Lot");
                 Log.Information("Impression Terminée avec Succès");
                 return Ok("Impression Successful.");
             }
