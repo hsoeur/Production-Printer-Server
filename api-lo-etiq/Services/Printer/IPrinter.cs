@@ -5,6 +5,6 @@
         public void ExecutePrinting(string usage);
         public void PrintFtp();
 
-        public bool PrintFile(string usage);
+        public bool PrintFileTest(string usage);
     }
 }

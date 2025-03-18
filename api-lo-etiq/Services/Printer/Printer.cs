@@ -99,7 +99,7 @@ namespace api_lo_etiq.Services.Printer
             CommandGenerator commandGenerator = new CommandGenerator(commandBrady);
             commandGenerator.Execute();
         }
-        public bool PrintFile(string usage)
+        public bool PrintFileTest(string usage)
         {
             string printer = _configuration["Printer:Share"];
 
