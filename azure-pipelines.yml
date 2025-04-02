@@ -88,5 +88,5 @@ stages:
 
     - script: |
         echo "🚀 Déploiement du nouveau conteneur..."
-        echo $(SSH_PASSWORD) | plink -batch -pw $(SSH_PASSWORD) $(SERVER_USER)@$(SERVER_IP) "docker run -d --name $(CONTAINER_NAME) -p $(APP_PORT):$(APP_PORT) -v C:/templates:/app/templates $(IMAGE_NAME):latest"
+        echo $(SSH_PASSWORD) | plink -batch -pw $(SSH_PASSWORD) $(SERVER_USER)@$(SERVER_IP) "docker run -d --name $(CONTAINER_NAME) -p $(APP_PORT):$(APP_PORT) -v C:/templates:/app/templates -v C:\Logs\Containers\$(CONTAINER_NAME):/app/logs $(IMAGE_NAME):latest"
       displayName: "🚀 Démarrer le nouveau conteneur avec montage de volume"
