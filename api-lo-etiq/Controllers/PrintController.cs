@@ -271,7 +271,7 @@ namespace api_lo_etiq.Controllers
                 _labelTemplateProcessor.ProcessTemplateReprint(etiquette, ordre, usage, version, article, _configuration);
                 Log.Information("Reprint action called with " + usage.Usage + " ID");
 
-                _printer.PrintFile(usage.Usage);
+                _printer.PrintFileTest(usage.Usage);
             }
             catch(Exception ex)
             {
@@ -333,7 +333,7 @@ namespace api_lo_etiq.Controllers
                 _labelTemplateProcessor.ProcessTemplateCommon(ordre, version, usage, date, uidOperateur ,article, _configuration);
                 Log.Information("Reprint action called with " + usage.Usage + " ID");
 
-                _printer.PrintFile(usage.Usage);
+                _printer.PrintFileTest(usage.Usage);
             }
             catch (Exception ex)
             {
