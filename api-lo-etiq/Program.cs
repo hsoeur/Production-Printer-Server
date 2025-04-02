@@ -12,10 +12,22 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var logDirectory = Path.Combine(AppContext.BaseDirectory, "logs");
+Directory.CreateDirectory(logDirectory); // S'assure que le répertoire existe
+
+var logFileName = $"Log_Api_Etiq_{DateTime.Now:yyyy-MM-dd}.log";
+var logFilePath = Path.Combine(logDirectory, logFileName);
+
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Verbose()
-    .WriteTo.File("logs/logs-api-lo-etiq.log")
+    .WriteTo.File(
+        path: logFilePath,
+        rollingInterval: RollingInterval.Infinite,
+        retainedFileCountLimit: 30, // optionnel
+        shared: true
+    )
     .CreateLogger();
+
 
 builder.Services.AddSingleton<HttpClient>();
 builder.Services.AddSingleton<IApiData, ApiData>();
