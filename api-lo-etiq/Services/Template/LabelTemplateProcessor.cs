@@ -1,4 +1,5 @@
 ﻿using api_lo_etiq.Models;
+using Microsoft.AspNetCore.Components.Forms;
 using Serilog;
 using System;
 using System.Globalization;
@@ -31,7 +32,7 @@ namespace api_lo_etiq.Services.Template
         /// <param name="date"></param>
         /// <param name="uidOperateur"></param>
         /// <param name="configuration"></param>
-        public void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, ArticleVersion version, Models.Template usageCorrespondanceProduit, string date, string uidOperateur, Article article, IConfiguration configuration)
+        public void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, ArticleVersion version, Models.Template usageCorrespondanceProduit, string date, string uidOperateur, Article article, string formattedInitiales, IConfiguration configuration)
         {
             string pathToTemplateDir = configuration["Template:Path"];
 
@@ -59,6 +60,7 @@ namespace api_lo_etiq.Services.Template
             templateContent = templateContent.Replace("#UidOF#", ordreFabrication.ManufacturingOrderUid);
 
             templateContent = templateContent.Replace("#UidOperateur#", uidOperateur);
+            templateContent = templateContent.Replace("#Initiales#", formattedInitiales);
 
             templateContent = templateContent.Replace("#Version#", version.FirmwareVersion);
             templateContent = templateContent.Replace("#UidProduit#", ordreFabrication.ProductUid);
