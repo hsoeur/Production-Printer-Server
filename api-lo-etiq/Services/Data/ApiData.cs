@@ -178,28 +178,5 @@ namespace api_lo_etiq.Services.api_data
 
             return JsonConvert.DeserializeObject<Label>(content);
         }
-
-        public async Task<User?> GetUserByUserUid(string uidOperateur)
-        {
-            var uri = $"api/Operator/GetOperatorByOperatorUid?operatorUid={uidOperateur}";
-
-            try
-            {
-                var response = await _httpClient.GetAsync(uri);
-                if (!response.IsSuccessStatusCode)
-                {
-                    return null; // Ou log si besoin
-                }
-
-                var content = await response.Content.ReadAsStringAsync();
-                return JsonConvert.DeserializeObject<User>(content);
-            }
-            catch (Exception ex)
-            {
-                // Log l'erreur ici si nécessaire
-                return null;
-            }
-        }
-
     }
 }

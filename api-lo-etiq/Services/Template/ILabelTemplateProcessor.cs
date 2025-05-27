@@ -31,7 +31,7 @@ namespace api_lo_etiq.Services.Template
         /// <param name="conf"></param>
         /// <returns>string : contenu du fichier out d'impression</returns>
         void ProcessTemplateReprint(Label etiquette, ManufacturingOrder ordre, Models.Template? usage, ArticleVersion? version, Article article, IConfiguration configuration);
-        void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, ArticleVersion version, Models.Template usageCorrespondanceProduit, string date, string uidOperateur, Article article, string formattedInitiales, Microsoft.Extensions.Configuration.IConfiguration configuration);
+        void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, ArticleVersion version, Models.Template usageCorrespondanceProduit, string date, string uidOperateur, Article article, Microsoft.Extensions.Configuration.IConfiguration configuration);
         void ProcessTemplatePartialPrint(ManufacturingOrder ordreFabrication, ArticleVersion versionArticle, Models.Template usageCorrespondanceProduit, string date, string userUid, Article article, string printQuantity, IConfiguration configuration);
         void ProcessTemplateArtBorne(Article article, string quantity, IConfiguration configuration);
     }

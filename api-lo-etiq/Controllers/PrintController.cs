@@ -138,11 +138,7 @@ namespace api_lo_etiq.Controllers
                 return Ok("ERR_ARTICLE_NOT_FOUND");
             }
 
-            User user = _apiData.GetUserByUserUid(uidOperateur).Result;
-
-            string formattedInitiales = FormatUserDisplay(user);
-
-            _labelTemplateProcessor.ProcessTemplateCommon(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, uidOperateur, article, formattedInitiales, _configuration);
+            _labelTemplateProcessor.ProcessTemplateCommon(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, uidOperateur, article, _configuration);
             int res = await _labelsCreator.ProcessAndCreateLabelsCommon(date, uidOperateur, ordreFabrication, usageCorrespondanceProduit, versionArticle);
 
             if (res == -1)
@@ -332,14 +328,9 @@ namespace api_lo_etiq.Controllers
                 return Ok("ERR_ARTICLE_NOT_FOUND");
             }
 
-            // Construction de la chaine initiales
-            User user = _apiData.GetUserByUserUid(uidOperateur).Result;
-
-            string formattedInitiales = FormatUserDisplay(user);
-
             try
             {
-                _labelTemplateProcessor.ProcessTemplateCommon(ordre, version, usage, date, uidOperateur ,article, formattedInitiales, _configuration);
+                _labelTemplateProcessor.ProcessTemplateCommon(ordre, version, usage, date, uidOperateur ,article, _configuration);
                 Log.Information("Reprint action called with " + usage.Usage + " ID");
 
                 _printer.PrintFileTest(usage.Usage);
@@ -380,14 +371,5 @@ namespace api_lo_etiq.Controllers
 
             return Ok("");
         }
-
-        public static string FormatUserDisplay(User user)
-        {
-            var initialLast = !string.IsNullOrWhiteSpace(user.LastName) ? user.LastName[0].ToString().ToUpper() : "";
-            var initialFirst = !string.IsNullOrWhiteSpace(user.FirstName) ? user.FirstName[0].ToString().ToUpper() : "";
-
-            return $"{initialLast}. {initialFirst}. ({user.UserUid})";
-        }
-
     }
 }
