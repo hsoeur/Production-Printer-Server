@@ -80,6 +80,32 @@ namespace api_lo_etiq.Services.Template
             File.WriteAllText("out_file.txt", templateContent);
         }
 
+        public void ProcessTemplateInitials(string initials, string quantity, IConfiguration configuration)
+        {
+            try
+            {
+                // Chemin vers le template spécifique aux initiales
+                string pathToTemplateDir = configuration["Template:Initiales"];
+                string templateContent = File.ReadAllText(pathToTemplateDir);
+
+                // Remplacement des balises dans le template
+                templateContent = templateContent.Replace("#Initiales#", initials);
+                templateContent = templateContent.Replace("#Quantite#", quantity);
+                templateContent = templateContent.Replace("#DD/MM/YYYY#", DateTime.Now.ToString("dd/MM/yyyy"));
+
+                // Écriture dans le fichier généré
+                File.WriteAllText("out_file.txt", templateContent);
+
+                Log.Information("Fichier d'impression des initiales généré avec succès.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Erreur lors de la génération du template pour les initiales.");
+                throw;
+            }
+        }
+
+
         public void ProcessTemplatePartialPrint(ManufacturingOrder ordreFabrication, ArticleVersion versionArticle, Models.Template usageCorrespondanceProduit, string date, string userUid, Article article, string printQuantity, IConfiguration configuration)
         {
             string pathToTemplateDir = configuration["Template:Path"];

@@ -50,5 +50,6 @@ namespace api_lo_etiq.Services.api_data
         Task<Label?> GetEtiquetteByUidAuthenti(string uidAuthenti);
         Task<Article> GetArticleByUidArticle(string uidProduit);
         Task<Label> GetLabelLastSerialNumberPrinted(string manufacturingOrderUid);
+        Task<User> GetUserByUid(string userUid);
     }
 }

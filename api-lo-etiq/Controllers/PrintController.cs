@@ -343,6 +343,44 @@ namespace api_lo_etiq.Controllers
             Log.Information("Reprint successful Entire lot");
             return Ok("SUCCESS");
         }
+        [HttpGet]
+        [ProducesResponseType(200)]
+        public async Task<IActionResult> PrintInitials(string userUid, string quantity)
+        {
+            Log.Information("PrintInitials called with userUid: {userUid} and quantity: {quantity}", userUid, quantity);
+
+            try
+            {
+                // Récupération de l'utilisateur
+                User user = await _apiData.GetUserByUid(userUid);
+
+                if (user == null)
+                {
+                    Log.Warning("User not found for userUid: {userUid}", userUid);
+                    return Ok("ERR_USER_NOT_FOUND");
+                }
+
+                // Extraction des initiales
+                string initials = $"{(string.IsNullOrEmpty(user.LastName) ? "" : user.LastName[0].ToString().ToUpper())}. " +
+                                  $"{(string.IsNullOrEmpty(user.FirstName) ? "" : user.FirstName[0].ToString().ToUpper())} ({user.UserUid})";
+
+                // Génération du template avec ces initiales
+                _labelTemplateProcessor.ProcessTemplateInitials(initials, quantity, _configuration);
+
+                // Impression du fichier
+                _printer.PrintFileTest("Initials");
+
+                Log.Information("PrintInitials completed with initials: {initials}", initials);
+                return Ok("SUCCESS");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Erreur dans PrintInitials");
+                return StatusCode(500, "Erreur interne lors de l'impression des initiales.");
+            }
+        }
+
+
 
         [HttpGet]
         [ProducesResponseType(200)]

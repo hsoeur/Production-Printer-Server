@@ -34,5 +34,6 @@ namespace api_lo_etiq.Services.Template
         void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, ArticleVersion version, Models.Template usageCorrespondanceProduit, string date, string uidOperateur, Article article, Microsoft.Extensions.Configuration.IConfiguration configuration);
         void ProcessTemplatePartialPrint(ManufacturingOrder ordreFabrication, ArticleVersion versionArticle, Models.Template usageCorrespondanceProduit, string date, string userUid, Article article, string printQuantity, IConfiguration configuration);
         void ProcessTemplateArtBorne(Article article, string quantity, IConfiguration configuration);
+        void ProcessTemplateInitials(string initials, string quantity, IConfiguration configuration);
     }
 }

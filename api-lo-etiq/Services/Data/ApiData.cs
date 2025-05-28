@@ -1,6 +1,8 @@
 ﻿using api_lo_etiq.Models;
 using Newtonsoft.Json;
+using Serilog;
 using System.Text;
+using System.Text.Json;
 
 namespace api_lo_etiq.Services.api_data
 {
@@ -30,7 +32,7 @@ namespace api_lo_etiq.Services.api_data
 
         }
 
-       
+
         public async Task<ArticleVersion?> GetVersionWithUidArticle(string uidArticle)
         {
             var uri = $"api/ArticleVersion/GetArticleVersionByArticleUid?articleUid={uidArticle}";
@@ -75,7 +77,7 @@ namespace api_lo_etiq.Services.api_data
                 return "Erreur lors de la demande : " + e.Message;
             }
         }
-       
+
         public async Task<bool> EtiquetteAlreadyExists(string uidAuthenti)
         {
             var uri = $"api/Label/LabelExists?authentiUid={uidAuthenti}";
@@ -91,7 +93,7 @@ namespace api_lo_etiq.Services.api_data
                 return false;
             }
         }
-        
+
         public async Task<List<User>?> GetCurrentOperateurs()
         {
             var uri = "api/Operator/GetCollectionCurrentOperator";
@@ -150,7 +152,7 @@ namespace api_lo_etiq.Services.api_data
 
             var content = await response.Content.ReadAsStringAsync();
 
-            return JsonConvert.DeserializeObject<Article>(content); 
+            return JsonConvert.DeserializeObject<Article>(content);
         }
 
         public async Task<List<Label>> GetCollectionLabelsByManufacturingOrderUid(string manufacturingOrderUid)
@@ -177,6 +179,30 @@ namespace api_lo_etiq.Services.api_data
             var content = await response.Content.ReadAsStringAsync();
 
             return JsonConvert.DeserializeObject<Label>(content);
+        }
+
+        public async Task<User> GetUserByUid(string userUid)
+        {
+            try
+            {
+                var url = $"api/Operator/GetOperatorByOperatorUid?operatorUid={userUid}";
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                var json = await response.Content.ReadAsStringAsync();
+
+                var user = System.Text.Json.JsonSerializer.Deserialize<User>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return user!;
+            }
+            catch (HttpRequestException httpEx)
+            {
+                Log.Error(httpEx, "Erreur HTTP lors de l'appel à GetUserByUid avec l'UID : {UserUid}", userUid);
+                return null;
+            }
         }
     }
 }
