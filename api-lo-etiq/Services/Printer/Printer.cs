@@ -82,9 +82,6 @@ namespace api_lo_etiq.Services.Printer
         /// <param name="usage"></param>
         public void ExecutePrinting(string usage)
         {
-            Log.Information("Printer::ExecutePrinting() => Lancement de la commande d'impression");
-
-            string fileNameOutForBrady = "out_file.txt";
             string printer = _configuration["Printer:Share"];
 
             if (usage != "Etiquette Lot")
@@ -92,12 +89,59 @@ namespace api_lo_etiq.Services.Printer
                 printer = _configuration["Printer:OtherThanLot"];
             }
 
-            string commandBrady = $"copy \"{fileNameOutForBrady}\" \"{printer}\"";
+
+            string user = "AMPHI-PROD\\adminprod"; // Utilisateur avec domaine
+            string password = "Paris2024JO*"; // Mot de passe
+
+            // Conversion du chemin d'imprimante Windows pour Linux (Samba)
+            string printerLinux = $"//{printer.Replace("\\\\", "").Replace("\\", "/")}";
+
+            // Construction de la commande `smbclient`
+            string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put out_file.txt\"";
 
             Log.Information($"CommandBrady : {commandBrady}");
 
-            CommandGenerator commandGenerator = new CommandGenerator(commandBrady);
-            commandGenerator.Execute();
+            try
+            {
+                Process process = new Process();
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = "/bin/sh",
+                    RedirectStandardInput = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                process.StartInfo = startInfo;
+                process.Start();
+
+                process.StandardInput.WriteLine(commandBrady);
+                process.StandardInput.Flush();
+                process.StandardInput.Close();
+
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+
+                process.WaitForExit();
+                int exitCode = process.ExitCode;
+                process.Close();
+
+                Log.Information($"Sortie : {output}");
+                if (!string.IsNullOrEmpty(error))
+                {
+                    Log.Error($"Erreur : {error}");
+                }
+
+                Console.WriteLine($"Code de sortie : {exitCode}");
+
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Erreur lors de l'exécution de la commande : {ex.Message}");
+                throw;
+            }
         }
         public bool PrintFileTest(string usage)
         {
