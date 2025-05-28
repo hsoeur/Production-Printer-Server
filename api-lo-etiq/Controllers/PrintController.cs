@@ -368,7 +368,7 @@ namespace api_lo_etiq.Controllers
                 _labelTemplateProcessor.ProcessTemplateInitials(initials, quantity, _configuration);
 
                 // Impression du fichier
-                _printer.PrintFileTest("Initials");
+                _printer.ExecutePrinting("Etiquette Lot");
 
                 Log.Information("PrintInitials completed with initials: {initials}", initials);
                 return Ok("SUCCESS");
