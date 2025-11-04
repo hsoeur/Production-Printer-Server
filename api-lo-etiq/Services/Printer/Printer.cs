@@ -28,8 +28,30 @@ namespace api_lo_etiq.Services.Printer
                 return;
             }
 
-            ExecuteFtpCommand(ftpServer, ftpUser, ftpPassword, fileName);
+            try
+            {
+                // 🔹 Lecture du contenu du fichier
+                string fileContent = File.ReadAllText(fileName);
+
+                // 🔹 Log du contenu (tronqué si trop long pour éviter de polluer les logs)
+                if (fileContent.Length > 2000)
+                {
+                    Log.Debug($"📄 Contenu du fichier '{fileName}' (tronqué à 2000 caractères) :\n{fileContent.Substring(0, 2000)}\n...");
+                }
+                else
+                {
+                    Log.Debug($"📄 Contenu complet du fichier '{fileName}' :\n{fileContent}");
+                }
+
+                // 🔹 Exécution de la commande FTP
+                ExecuteFtpCommand(ftpServer, ftpUser, ftpPassword, fileName);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, $"Erreur lors de la lecture du fichier '{fileName}'");
+            }
         }
+
 
         public void ExecuteFtpCommand(string ftpServer, string ftpUser, string ftpPassword, string filePath)
         {
