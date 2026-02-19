@@ -1,16 +1,11 @@
-﻿using api_lo_etiq.Models;
+﻿using DataLib;
+using System.Threading.Tasks;
 
 namespace api_lo_etiq.Services.Labels
 {
     public interface ILabelsCreator
     {
-        /*
-        int ProcessAndCreateLabelsAccessoire(string date, string uidOperateur, OrdreFabrication ordreFabrication, UsageCorrespondanceProduit usageCorrespondanceProduit);
-        int ProcessAndCreateLabelsEmballage(string date, string uidOperateur, OrdreFabrication ordreFabrication, UsageCorrespondanceProduit usage);
-        int ProcessAndCreateLabelsLot(string date, string uidOperateur, OrdreFabrication? ordreFabrication, UsageCorrespondanceProduit? usageTemplate, VersionArticle? version);
-        */
-        Task<int> ProcessAndCreateLabelsCommon(string date, string uidOperateur, ManufacturingOrder? ordreFabrication, Models.Template? usageTemplate, ArticleVersion? version);
-        int ProcessAndCreateLabelsPartialPrint(string date, string userUid, ManufacturingOrder ordreFabrication, Models.Template usageCorrespondanceProduit, ArticleVersion versionArticle, string printQuantity);
-        //int ProcessAndCreateLabelsMontage(string date, string uidOperateur, OrdreFabrication ordreFabrication, UsageCorrespondanceProduit usage);
+        Task<int> ProcessAndCreateLabelsCommon(DateTimeOffset date, string uidOperateur, ManufacturingOrder? ordreFabrication, LabelTemplate? usageTemplate, FirmwareVersion? version);
+        int ProcessAndCreateLabelsPartialPrint(DateTimeOffset date, string userUid, ManufacturingOrder ordreFabrication, LabelTemplate usageCorrespondanceProduit, FirmwareVersion versionArticle, int printQuantity);
     }
 }

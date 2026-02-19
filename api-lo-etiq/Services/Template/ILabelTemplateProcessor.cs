@@ -1,4 +1,5 @@
-﻿using api_lo_etiq.Models;
+﻿using DataLib;
+using Microsoft.Extensions.Configuration;
 
 namespace api_lo_etiq.Services.Template
 {
@@ -30,9 +31,9 @@ namespace api_lo_etiq.Services.Template
         /// <param name="quantite"></param>
         /// <param name="conf"></param>
         /// <returns>string : contenu du fichier out d'impression</returns>
-        void ProcessTemplateReprint(Label etiquette, ManufacturingOrder ordre, Models.Template? usage, ArticleVersion? version, Article article, IConfiguration configuration);
-        void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, ArticleVersion version, Models.Template usageCorrespondanceProduit, string date, string uidOperateur, Article article, Microsoft.Extensions.Configuration.IConfiguration configuration);
-        void ProcessTemplatePartialPrint(ManufacturingOrder ordreFabrication, ArticleVersion versionArticle, Models.Template usageCorrespondanceProduit, string date, string userUid, Article article, string printQuantity, IConfiguration configuration);
+        void ProcessTemplateReprint(Label etiquette, ManufacturingOrder ordre, LabelTemplate? usage, FirmwareVersion? version, Article article, IConfiguration configuration);
+        void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, FirmwareVersion version, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string uidOperateur, Article article, IConfiguration configuration);
+        void ProcessTemplatePartialPrint(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string userUid, Article article, int printQuantity, IConfiguration configuration);
         void ProcessTemplateArtBorne(Article article, string quantity, IConfiguration configuration);
         void ProcessTemplateInitials(string initials, string quantity, IConfiguration configuration);
     }

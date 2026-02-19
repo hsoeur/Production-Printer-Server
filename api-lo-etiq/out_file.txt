@@ -6,10 +6,18 @@ J
 H 50
 
 ; format etiquette
-S l1;0,0,12,14.64,18,21,5
+S l1;0,0.4,12,14.64,18,21,5
+
+; option impression
+O R,T,p
+
+; impression code barre
+B 6,1.5,0,DATAMATRIX,0.25;0159B ;24293;43;19/02/26
 
 ; impression textes
-T 3,9,0,5,pt10;S. H (71)
+T 0.7,9,0,5,pt5;61SP00159B
+T 11.8,9,0,5,pt5;24293
+T 1,11,0,5,pt6;V07.02
 
 ; nb d'étiquettes
-A 5
+A 30

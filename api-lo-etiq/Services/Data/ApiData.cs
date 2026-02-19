@@ -1,4 +1,5 @@
 ﻿using api_lo_etiq.Models;
+using DataLib;
 using Newtonsoft.Json;
 using Serilog;
 using System.Text;
@@ -18,9 +19,10 @@ namespace api_lo_etiq.Services.api_data
             _httpClient.BaseAddress = new Uri(_configuration["Api:Uri"]);
         }
 
-        public async Task<ManufacturingOrder?> GetOrdreFabricationWithUidOF(string uidOF)
+        public async Task<ManufacturingOrder?> GetOrdreFabricationWithUidOF(int uidOF)
         {
-            var uri = $"api/ManufacturingOrder/GetManufacturingOrderByManufacturingOrderUid?manufacturingOrderUid={uidOF}";
+            // Updated endpoint to new route provided
+            var uri = $"api/ManufacturingOrder/by-manufacturing-order-uid?manufacturingOrderUid={uidOF}";
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -33,17 +35,23 @@ namespace api_lo_etiq.Services.api_data
         }
 
 
-        public async Task<ArticleVersion?> GetVersionWithUidArticle(string uidArticle)
+        public async Task<FirmwareVersion?> GetVersionWithUidArticle(string uidArticle)
         {
-            var uri = $"api/ArticleVersion/GetArticleVersionByArticleUid?articleUid={uidArticle}";
+            var uri = $"api/FirmwareVersions/by-article-uid?articleUid={uidArticle}";
 
             var response = await _httpClient.GetAsync(uri);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                Log.Information("Aucune version firmware trouvée pour l'article : {UidArticle}", uidArticle);
+                return null;
+            }
 
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
 
-            return JsonConvert.DeserializeObject<ArticleVersion>(content);
+            return JsonConvert.DeserializeObject<FirmwareVersion>(content);
 
         }
         /// <summary>
@@ -53,7 +61,8 @@ namespace api_lo_etiq.Services.api_data
         /// <returns></returns>
         public async Task<string> CreateEtiquette(LabelDto request)
         {
-            string uri = "api/Label/CreateLabel";
+            // Updated endpoint to new route
+            string uri = "api/Labels/create";
 
             var jsonUserData = JsonConvert.SerializeObject(request);
             var content = new StringContent(jsonUserData, Encoding.UTF8, "application/json");
@@ -80,41 +89,22 @@ namespace api_lo_etiq.Services.api_data
 
         public async Task<bool> EtiquetteAlreadyExists(string uidAuthenti)
         {
-            var uri = $"api/Label/LabelExists?authentiUid={uidAuthenti}";
+            var uri = $"api/Labels/exists-by-authenti-uid?authentiUid={uidAuthenti}";
 
             var response = await _httpClient.GetAsync(uri);
 
-            if (response.IsSuccessStatusCode)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return response.IsSuccessStatusCode;
         }
 
-        public async Task<List<User>?> GetCurrentOperateurs()
-        {
-            var uri = "api/Operator/GetCollectionCurrentOperator";
-
-            var response = await _httpClient.GetAsync(uri);
-
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync();
-
-            return JsonConvert.DeserializeObject<List<User>>(content);
-        }
         /// <summary>
         /// Récupération des données de correspondance entre un produit un template et un usage.
         /// </summary>
         /// <param name="uidProduit"></param>
         /// <param name="uidUsage"></param>
         /// <returns></returns>
-        public async Task<Models.Template?> GetUsageCorrespondanceProduitWithUidProduitUidUsage(string uidProduit, string uidUsage)
+        public async Task<LabelTemplate?> GetUsageCorrespondanceProduitWithUidProduitUidUsage(string uidProduit, string uidUsage)
         {
-            var uri = $"api/Template/GetTemplateByArticleUidAndUsageUid?uidProduit={uidProduit}&usage={uidUsage}";
+            var uri = $"api/LabelTemplate/by-article-uid-and-usage?uidProduit={uidProduit}&usage={uidUsage}";
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -122,7 +112,7 @@ namespace api_lo_etiq.Services.api_data
 
             var content = await response.Content.ReadAsStringAsync();
 
-            return JsonConvert.DeserializeObject<Models.Template>(content);
+            return JsonConvert.DeserializeObject<LabelTemplate>(content);
         }
         /// <summary>
         /// Récupérer les données de l'étiquette sélectionnée pour lé réimpression.
@@ -131,7 +121,7 @@ namespace api_lo_etiq.Services.api_data
         /// <returns></returns>
         public async Task<Label?> GetEtiquetteByUidAuthenti(string uidAuthenti)
         {
-            var uri = $"api/Label/GetLabelByAuthentiUid?authentiUid={uidAuthenti}";
+            var uri = $"api/Labels/by-authenti-uid?authentiUid={uidAuthenti}";
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -144,7 +134,7 @@ namespace api_lo_etiq.Services.api_data
 
         public async Task<Article> GetArticleByUidArticle(string uidProduit)
         {
-            var uri = $"api/Article/GetArticleByArticleUid?articleUid={uidProduit}";
+            var uri = $"api/Articles/by-article-uid?articleUid={uidProduit}";
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -155,9 +145,9 @@ namespace api_lo_etiq.Services.api_data
             return JsonConvert.DeserializeObject<Article>(content);
         }
 
-        public async Task<List<Label>> GetCollectionLabelsByManufacturingOrderUid(string manufacturingOrderUid)
+        public async Task<List<Label>> GetCollectionLabelsByManufacturingOrderUid(int manufacturingOrderUid)
         {
-            var uri = $"api/Label/GetCollectionLabelByManufacturingOrderUid?manufacturingOrderUid={manufacturingOrderUid}";
+            var uri = $"api/Labels/by-manufacturing-order?manufacturingOrderUid={manufacturingOrderUid}";
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -168,9 +158,9 @@ namespace api_lo_etiq.Services.api_data
             return JsonConvert.DeserializeObject<List<Label>>(content);
         }
 
-        public async Task<Label> GetLabelLastSerialNumberPrinted(string manufacturingOrderUid)
+        public async Task<Label> GetLabelLastSerialNumberPrinted(int manufacturingOrderUid)
         {
-            var uri = $"api/Label/GetLabelLastSerialNumberPrintedByManufacturingOrderUid?manufacturingOrderUid={manufacturingOrderUid}";
+            var uri = $"api/Labels/last-serial-number-by-manufacturing-order?manufacturingOrderUid={manufacturingOrderUid}";
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -185,7 +175,7 @@ namespace api_lo_etiq.Services.api_data
         {
             try
             {
-                var url = $"api/Operator/GetOperatorByOperatorUid?operatorUid={userUid}";
+                var url = $"api/Users/by-user-uid?userUid={userUid}";
                 var response = await _httpClient.GetAsync(url);
                 response.EnsureSuccessStatusCode();
 

@@ -1,6 +1,7 @@
 ﻿using api_lo_etiq.Models;
 using api_lo_etiq.Services.api_data;
 using CmdGenerator;
+using DataLib;
 using Microsoft.AspNetCore.Identity;
 using Serilog;
 using System;
@@ -49,22 +50,20 @@ namespace api_lo_etiq.Services.Labels
         /// <param name="ordreFabrication"></param>
         /// <param name="isLabelInDb"></param>
         /// <param name="quantite"></param>
-        private static void ParseQuantityOF(string quantity, out bool isLabelInDb, out int quantite)
+        private static void ParseQuantityOF(int quantity, out bool isLabelInDb, out int quantite)
         {
             isLabelInDb = false;
-            double quantiteDouble = double.Parse(quantity.Trim(), CultureInfo.InvariantCulture);
-            quantite = (int)quantiteDouble;
-
+            quantite = quantity;
         }
         /// <summary>
         /// Lancement de la commande d'impression.
         /// </summary>
         /// <param name="usageCorrespondanceProduit"></param>
-        private void ExecutePrinting(Models.Template usageCorrespondanceProduit)
+        private void ExecutePrinting(LabelTemplate usageCorrespondanceProduit)
         {
             string printer = _configuration["Printer:Share"];
 
-            if (usageCorrespondanceProduit.Usage != "Etiquette Lot")
+            if (usageCorrespondanceProduit.LabelTypeUid != "Etiquette Lot")
             {
                 printer = _configuration["Printer:OtherThanLot"];
             }
@@ -135,23 +134,11 @@ namespace api_lo_etiq.Services.Labels
         /// <param name="usageTemplate"></param>
         /// <param name="version"></param>
         /// <returns></returns>
-        public async Task<int> ProcessAndCreateLabelsCommon(string date, string uidOperateur, ManufacturingOrder? ordreFabrication, Models.Template? usageTemplate, ArticleVersion? version)
+        public async Task<int> ProcessAndCreateLabelsCommon(DateTimeOffset date, string uidOperateur, ManufacturingOrder? ordreFabrication, LabelTemplate? usageTemplate, FirmwareVersion? version)
         {
-            int currentSN;
-            if (!int.TryParse(ordreFabrication.FirstSerialNumber, out currentSN))
-            {
-                // Si FirstSerialNumber contient un point décimal, essayer de convertir en double puis en entier
-                if (double.TryParse(ordreFabrication.FirstSerialNumber, out double parsedValue))
-                {
-                    currentSN = (int)Math.Floor(parsedValue); // Arrondi vers le bas si nécessaire
-                }
-                else
-                {
-                    throw new FormatException($"Invalid format for FirstSerialNumber: {ordreFabrication.FirstSerialNumber}");
-                }
-            }
+            int currentSN = ordreFabrication.FirstSerialNumber;
 
-            int ofQuantity;
+            /*
             if (!int.TryParse(ordreFabrication.Quantity.Trim(), out ofQuantity))
             {
                 // Si Quantity contient un point décimal, essayer de convertir en double puis en entier
@@ -164,58 +151,66 @@ namespace api_lo_etiq.Services.Labels
                     throw new FormatException($"Invalid format for Quantity: {ordreFabrication.Quantity}");
                 }
             }
+            */
 
             bool isLabelInDb = false;
             int quantite;
-            string persoUsage = GetFirstThreeLettersOfSecondWordInUpperCase(usageTemplate.Usage);
-            int ret = 0;
+            string persoUsage = GetFirstThreeLettersOfSecondWordInUpperCase(usageTemplate.LabelTypeUid);
+            int ret =0;
 
             List<Label> labels = await _apiData.GetCollectionLabelsByManufacturingOrderUid(ordreFabrication.ManufacturingOrderUid);
+
+            if(labels == null)
+            {
+                labels = new List<Label>();
+            }
             
-            if (labels.Count == ofQuantity && usageTemplate.Usage == labels.First().Usage)
+            if (labels.Count == ordreFabrication.Quantity && usageTemplate.LabelTemplateUid == labels.First().LabelTypeUid)
             {
                 ret = -1;
             }
-            else if (labels.Count < ofQuantity && labels.Count != 0)
+
+            else if (labels.Count < ordreFabrication.Quantity && labels.Count !=0)
             {
-                int remainingQuantity = ofQuantity - labels.Count;
+                int remainingQuantity = ordreFabrication.Quantity - labels.Count;
                 Label label = await _apiData.GetLabelLastSerialNumberPrinted(ordreFabrication.ManufacturingOrderUid);
-                int currentSerialNumber = int.Parse(label.CurrentSerialNumber)+1;
+                
+                int currentSerialNumber = label.CurrentSerialNumber +1;
 
                 for (int i = currentSerialNumber; i < currentSerialNumber + remainingQuantity; i++)
                 {
-                    string currentSnString = i.ToString();
+                    int currentSnString = i;
 
-                    if (ordreFabrication.FirstSerialNumber == "0")
+                    if (ordreFabrication.FirstSerialNumber ==0)
                     {
-                        currentSnString = "0";
+                        currentSnString = 0;
                         LabelDto etiWithoutSN = new LabelDto
                         {
-                            AuthentiUid = ordreFabrication.ProductUid.Substring(0, 9) + currentSnString + persoUsage,
+                            AuthentiUid = ordreFabrication.ProductUid.Substring(0,9) + currentSnString + persoUsage,
                             UserUid = uidOperateur,
                             ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
                             CreationDate = date,
                             CurrentSerialNumber = currentSnString,
-                            ProductVersion = version.FirmwareVersion,
-                            Usage = usageTemplate.Usage,
+                            ProductVersion = version.Version,
+                            LabelTypeUid = usageTemplate.LabelTypeUid,
                             Template = usageTemplate.TemplateFile,
                             ProductUid = ordreFabrication.ProductUid
                         };
 
                         _apiData.CreateEtiquette(etiWithoutSN);
-                        Log.Debug($"Création d'une étiquette sans numéro de série: {etiWithoutSN.AuthentiUid}, {etiWithoutSN.UserUid}, {etiWithoutSN.ManufacturingOrderUid}, {etiWithoutSN.CreationDate}, {etiWithoutSN.CurrentSerialNumber}, {etiWithoutSN.ProductUid}, {etiWithoutSN.Usage}");
+                        Log.Debug($"Création d'une étiquette sans numéro de série: {etiWithoutSN.AuthentiUid}, {etiWithoutSN.UserUid}, {etiWithoutSN.ManufacturingOrderUid}, {etiWithoutSN.CreationDate}, {etiWithoutSN.CurrentSerialNumber}, {etiWithoutSN.ProductUid}, {etiWithoutSN.LabelTypeUid}");
                     }
                     else
                     {
                         LabelDto etiDto = new LabelDto
                         {
-                            AuthentiUid = ordreFabrication.ProductUid.Substring(0, 9) + currentSnString + persoUsage,
+                            AuthentiUid = ordreFabrication.ProductUid.Substring(0,9) + currentSnString + persoUsage,
                             UserUid = uidOperateur,
                             ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
                             CreationDate = date,
                             CurrentSerialNumber = currentSnString,
-                            ProductVersion = version.FirmwareVersion,
-                            Usage = usageTemplate.Usage,
+                            ProductVersion = version.Version,
+                            LabelTypeUid = usageTemplate.LabelTypeUid,
                             Template = usageTemplate.TemplateFile,
                             ProductUid = ordreFabrication.ProductUid
                         };
@@ -230,7 +225,7 @@ namespace api_lo_etiq.Services.Labels
                         else
                         {
                             _apiData.CreateEtiquette(etiDto);
-                            Log.Debug($"Création d'une étiquette : {etiDto.AuthentiUid}, {etiDto.UserUid}, {etiDto.ManufacturingOrderUid}, {etiDto.CreationDate}, {etiDto.CurrentSerialNumber}, {etiDto.ProductVersion}, {etiDto.Usage}");
+                            Log.Debug($"Création d'une étiquette : {etiDto.AuthentiUid}, {etiDto.UserUid}, {etiDto.ManufacturingOrderUid}, {etiDto.CreationDate}, {etiDto.CurrentSerialNumber}, {etiDto.ProductVersion}, {etiDto.LabelTypeUid}");
                         }
                     }
                 }
@@ -252,44 +247,45 @@ namespace api_lo_etiq.Services.Labels
         }
 
 
-        private int NominalLabelCreation(string date, string uidOperateur, ManufacturingOrder? ordreFabrication, Models.Template? usageTemplate, ArticleVersion? version, int currentSN, out bool isLabelInDb, out int quantite, string persoUsage)
+
+        private int NominalLabelCreation(DateTimeOffset date, string uidOperateur, ManufacturingOrder? ordreFabrication, LabelTemplate? usageTemplate, FirmwareVersion? version, int currentSN, out bool isLabelInDb, out int quantite, string persoUsage)
         {
             ParseQuantityOF(ordreFabrication.Quantity, out isLabelInDb, out quantite);
 
             for (int i = currentSN; i < currentSN + quantite; i++)
             {
-                string currentSnString = i.ToString();
+                int currentSnString = i;
 
-                if (ordreFabrication.FirstSerialNumber == "0")
+                if (ordreFabrication.FirstSerialNumber ==0)
                 {
-                    currentSnString = "0";
+                    currentSnString = 0;
                     LabelDto etiWithoutSN = new LabelDto
                     {
-                        AuthentiUid = ordreFabrication.ProductUid.Substring(0, 9) + currentSnString + persoUsage,
+                        AuthentiUid = ordreFabrication.ProductUid.Substring(0,9) + currentSnString + persoUsage,
                         UserUid = uidOperateur,
                         ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
                         CreationDate = date,
                         CurrentSerialNumber = currentSnString,
-                        ProductVersion = version.FirmwareVersion,
-                        Usage = usageTemplate.Usage,
+                        ProductVersion = version.Version,
+                        LabelTypeUid = usageTemplate.LabelTypeUid,
                         Template = usageTemplate.TemplateFile,
                         ProductUid = ordreFabrication.ProductUid
                     };
 
                     _apiData.CreateEtiquette(etiWithoutSN);
-                    Log.Debug($"Création d'une étiquette sans numéro de série: {etiWithoutSN.AuthentiUid}, {etiWithoutSN.UserUid}, {etiWithoutSN.ManufacturingOrderUid}, {etiWithoutSN.CreationDate}, {etiWithoutSN.CurrentSerialNumber}, {etiWithoutSN.ProductUid}, {etiWithoutSN.Usage}");
+                    Log.Debug($"Création d'une étiquette sans numéro de série: {etiWithoutSN.AuthentiUid}, {etiWithoutSN.UserUid}, {etiWithoutSN.ManufacturingOrderUid}, {etiWithoutSN.CreationDate}, {etiWithoutSN.CurrentSerialNumber}, {etiWithoutSN.ProductUid}, {etiWithoutSN.LabelTypeUid}");
                 }
                 else
                 {
                     LabelDto etiDto = new LabelDto
                     {
-                        AuthentiUid = ordreFabrication.ProductUid.Substring(0, 9) + currentSnString + persoUsage,
+                        AuthentiUid = ordreFabrication.ProductUid.Substring(0,9) + currentSnString + persoUsage,
                         UserUid = uidOperateur,
                         ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
                         CreationDate = date,
                         CurrentSerialNumber = currentSnString,
-                        ProductVersion = version.FirmwareVersion,
-                        Usage = usageTemplate.Usage,
+                        ProductVersion = version.Version,
+                        LabelTypeUid = usageTemplate.LabelTypeUid,
                         Template = usageTemplate.TemplateFile,
                         ProductUid = ordreFabrication.ProductUid
                     };
@@ -304,7 +300,7 @@ namespace api_lo_etiq.Services.Labels
                     else
                     {
                         _apiData.CreateEtiquette(etiDto);
-                        Log.Debug($"Création d'une étiquette : {etiDto.AuthentiUid}, {etiDto.UserUid}, {etiDto.ManufacturingOrderUid}, {etiDto.CreationDate}, {etiDto.CurrentSerialNumber}, {etiDto.ProductVersion}, {etiDto.Usage}");
+                        Log.Debug($"Création d'une étiquette : {etiDto.AuthentiUid}, {etiDto.UserUid}, {etiDto.ManufacturingOrderUid}, {etiDto.CreationDate}, {etiDto.CurrentSerialNumber}, {etiDto.ProductVersion}, {etiDto.LabelTypeUid}");
                     }
                 }
             }
@@ -317,31 +313,31 @@ namespace api_lo_etiq.Services.Labels
             return 0;
         }
 
-        public int ProcessAndCreateLabelsPartialPrint(string date, string userUid, ManufacturingOrder ordreFabrication, Models.Template template, ArticleVersion version, string printQuantity)
+        public int ProcessAndCreateLabelsPartialPrint(DateTimeOffset date, string userUid, ManufacturingOrder ordreFabrication, LabelTemplate template, FirmwareVersion version, int printQuantity)
         {
             try
             {
-                int currentSN = int.Parse(ordreFabrication.FirstSerialNumber);
+                int currentSN = ordreFabrication.FirstSerialNumber;
                 bool isLabelInDb;
                 int quantite;
-                string persoUsage = GetFirstThreeLettersOfSecondWordInUpperCase(template.Usage);
+                string persoUsage = GetFirstThreeLettersOfSecondWordInUpperCase(template.LabelTypeUid);
 
                 ParseQuantityOF(printQuantity, out isLabelInDb, out quantite);
 
                 for (int i = currentSN; i < currentSN + quantite; i++)
                 {
 
-                    string currentSnString = i.ToString();
+                    int currentSnString = i;
 
                     LabelDto etiDto = new LabelDto
                     {
-                        AuthentiUid = ordreFabrication.ProductUid.Substring(0, 9) + currentSnString + persoUsage,
+                        AuthentiUid = ordreFabrication.ProductUid.Substring(0,9) + currentSnString + persoUsage,
                         UserUid = userUid,
                         ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
                         CreationDate = date,
                         CurrentSerialNumber = currentSnString,
-                        ProductVersion = version.FirmwareVersion,
-                        Usage = template.Usage,
+                        ProductVersion = version.Version,
+                        LabelTypeUid = template.LabelTypeUid,
                         Template = template.TemplateFile,
                         ProductUid = ordreFabrication.ProductUid
                     };
@@ -356,7 +352,7 @@ namespace api_lo_etiq.Services.Labels
                     else
                     {
                         _apiData.CreateEtiquette(etiDto);
-                        Log.Debug($"Création d'une étiquette : {etiDto.AuthentiUid}, {etiDto.UserUid}, {etiDto.ManufacturingOrderUid}, {etiDto.CreationDate}, {etiDto.CurrentSerialNumber}, {etiDto.ProductVersion}, {etiDto.Usage}");
+                        Log.Debug($"Création d'une étiquette : {etiDto.AuthentiUid}, {etiDto.UserUid}, {etiDto.ManufacturingOrderUid}, {etiDto.CreationDate}, {etiDto.CurrentSerialNumber}, {etiDto.ProductVersion}, {etiDto.LabelTypeUid}");
                     }
                 }
 
