@@ -28,7 +28,7 @@
       <HintPath>libs\CommandGenerator.dll</HintPath>
     </Reference>
     <Reference Include="DataLib">
-      <HintPath>..\..\..\Data\DataLib\bin\Debug\net8.0\DataLib.dll</HintPath>
+      <HintPath>libs\DataLib.dll</HintPath>
     </Reference>
   </ItemGroup>
 

@@ -14,7 +14,7 @@ RUN dotnet restore --disable-parallel --ignore-failed-sources
 
 # Copie du reste des fichiers et compilation en mode Release
 COPY . . 
-RUN dotnet publish -c Release -p:TreatWarningsAsErrors=false -o /app/publish
+RUN dotnet publish "api-lo-etiq/api-lo-etiq.csproj" -c Release -p:TreatWarningsAsErrors=false -o /app/publish
 
 # ===========================
 # Étape 2 : Exécution avec l'image .NET Runtime pour alléger l'image
