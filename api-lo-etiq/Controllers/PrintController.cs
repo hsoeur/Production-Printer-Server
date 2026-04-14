@@ -348,12 +348,13 @@ namespace api_lo_etiq.Controllers
                 var version = await _apiData.GetVersionWithUidArticle(ordre.ProductUid);
                 if (version == null)
                 {
-                    Log.Information("VersionArticle not found for uidProduit: {uidProduit}", ordre.ProductUid);
-                    return NotFound(new ProblemDetails
-                    {
-                        Title = "Version introuvable",
-                        Detail = $"Aucune version trouvée pour le produit {ordre.ProductUid}."
-                    });
+                    Log.Information("VersionArticle not found for uidProduit: {uidProduit}, using default version", ordre.ProductUid);
+                    version = new FirmwareVersion() 
+                    { 
+                        FirmwareVersionUid = Guid.NewGuid().ToString(), 
+                        ArticleUid = ordre.ProductUid, 
+                        Version = "Vxx.xx" 
+                    };
                 }
 
                 var article = await _apiData.GetArticleByUidArticle(ordre.ProductUid);
@@ -448,12 +449,13 @@ namespace api_lo_etiq.Controllers
                 var version = await _apiData.GetVersionWithUidArticle(ordre.ProductUid);
                 if (version == null)
                 {
-                    Log.Information("VersionArticle not found for uidProduit: {uidProduit}", ordre.ProductUid);
-                    return NotFound(new ProblemDetails
-                    {
-                        Title = "Version introuvable",
-                        Detail = $"Aucune version trouvée pour le produit {ordre.ProductUid}."
-                    });
+                    Log.Information("VersionArticle not found for uidProduit: {uidProduit}, using default version", ordre.ProductUid);
+                    version = new FirmwareVersion() 
+                    { 
+                        FirmwareVersionUid = Guid.NewGuid().ToString(), 
+                        ArticleUid = ordre.ProductUid, 
+                        Version = "Vxx.xx" 
+                    };
                 }
 
                 var article = await _apiData.GetArticleByUidArticle(ordre.ProductUid);
