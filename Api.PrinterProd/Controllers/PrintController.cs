@@ -1,7 +1,7 @@
-﻿using api_lo_etiq.Services.api_data;
-using api_lo_etiq.Services.Labels;
-using api_lo_etiq.Services.Printer;
-using api_lo_etiq.Services.Template;
+﻿using Api.PrinterProd.Services.api_data;
+using Api.PrinterProd.Services.Labels;
+using Api.PrinterProd.Services.Printer;
+using Api.PrinterProd.Services.Template;
 using DataLib;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -9,7 +9,7 @@ using Serilog;
 using System;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace api_lo_etiq.Controllers
+namespace Api.PrinterProd.Controllers
 {
     /// <summary>
     /// CLasse PrintController qui expose des endpoints pour l'impression et la réimpression des étiquettes de production.

@@ -2,7 +2,7 @@
 using Serilog;
 using System.Diagnostics;
 
-namespace api_lo_etiq.Services.Printer
+namespace Api.PrinterProd.Services.Printer
 {
     public class Printer : IPrinter
     {

@@ -1,4 +1,4 @@
-﻿namespace api_lo_etiq.Services.Printer
+﻿namespace Api.PrinterProd.Services.Printer
 {
     public interface IPrinter
     {

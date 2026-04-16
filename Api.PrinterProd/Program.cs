@@ -1,7 +1,7 @@
-using api_lo_etiq.Services.api_data;
-using api_lo_etiq.Services.Labels;
-using api_lo_etiq.Services.Printer;
-using api_lo_etiq.Services.Template;
+using Api.PrinterProd.Services.api_data;
+using Api.PrinterProd.Services.Labels;
+using Api.PrinterProd.Services.Printer;
+using Api.PrinterProd.Services.Template;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);

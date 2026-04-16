@@ -1,7 +1,7 @@
 ﻿using DataLib;
 using System.Threading.Tasks;
 
-namespace api_lo_etiq.Services.Labels
+namespace Api.PrinterProd.Services.Labels
 {
     public interface ILabelsCreator
     {

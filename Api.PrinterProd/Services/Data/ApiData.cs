@@ -1,11 +1,11 @@
-﻿using api_lo_etiq.Models;
+﻿using Api.PrinterProd.Models;
 using DataLib;
 using Newtonsoft.Json;
 using Serilog;
 using System.Text;
 using System.Text.Json;
 
-namespace api_lo_etiq.Services.api_data
+namespace Api.PrinterProd.Services.api_data
 {
     public class ApiData : IApiData
     {

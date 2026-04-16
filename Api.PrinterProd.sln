@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "api-lo-etiq", "api-lo-etiq\api-lo-etiq.csproj", "{93BC5F6D-6779-4E3B-A3E9-DF68DA84E041}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Api.PrinterProd", "Api.PrinterProd\Api.PrinterProd.csproj", "{93BC5F6D-6779-4E3B-A3E9-DF68DA84E041}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

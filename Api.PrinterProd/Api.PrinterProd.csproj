@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <RootNamespace>api_lo_etiq</RootNamespace>
+    <RootNamespace>Api.PrinterProd</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

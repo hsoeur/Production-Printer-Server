@@ -1,7 +1,7 @@
 ﻿using DataLib;
 using Microsoft.Extensions.Configuration;
 
-namespace api_lo_etiq.Services.Template
+namespace Api.PrinterProd.Services.Template
 {
     public interface ILabelTemplateProcessor
     {

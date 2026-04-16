@@ -4,7 +4,7 @@ using System;
 using System.Globalization;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace api_lo_etiq.Services.Template
+namespace Api.PrinterProd.Services.Template
 {
     public class LabelTemplateProcessor : ILabelTemplateProcessor
     {
@@ -51,6 +51,11 @@ namespace api_lo_etiq.Services.Template
             templateContent = templateContent.Replace("#Version#", version.Version);
             templateContent = templateContent.Replace("#UidProduit#", ordreFabrication.ProductUid);
             templateContent = templateContent.Replace("#Quantite#", ordreFabrication.Quantity.ToString("0"));
+
+            //Ajout de #DesignationArticle# pour les étiquettes des Gateway SIP V1
+            templateContent = templateContent.Replace("#DesignationArticle#", article.Designation);
+            templateContent = templateContent.Replace("#Mac#", article.Designation); 
+            templateContent = templateContent.Replace("#Url#", article.Designation); 
 
             // Use date.DateTime for formatting
             DateTime dateTime = date.DateTime;
@@ -117,6 +122,11 @@ namespace api_lo_etiq.Services.Template
             templateContent = templateContent.Replace("#UidProduit#", ordreFabrication.ProductUid);
             templateContent = templateContent.Replace("#Quantite#", printQuantity.ToString("0"));
 
+            //Ajout de #DesignationArticle# pour les étiquettes des Gateway SIP V1
+            templateContent = templateContent.Replace("#DesignationArticle#", article.Designation);
+            templateContent = templateContent.Replace("#Mac#", article.Designation);
+            templateContent = templateContent.Replace("#Url#", article.Designation);
+
             // Correction: Use date.DateTime for formatting
             DateTime dateTime = date.DateTime;
             string formattedDateForLot = dateTime.ToString("dd/MM/yy", CultureInfo.InvariantCulture);
@@ -159,6 +169,11 @@ namespace api_lo_etiq.Services.Template
             templateContent = templateContent.Replace("#Version#", version.Version);
             templateContent = templateContent.Replace("#UidProduit#", ordre.ProductUid);
             templateContent = templateContent.Replace("#Quantite#", "1");
+
+            //Ajout de #DesignationArticle# pour les étiquettes des Gateway SIP V1
+            templateContent = templateContent.Replace("#DesignationArticle#", article.Designation);
+            templateContent = templateContent.Replace("#Mac#", article.Designation);
+            templateContent = templateContent.Replace("#Url#", article.Designation);
 
             DateTime dateTime = etiquette.CreationDate.DateTime;
             string formattedDateForLot = dateTime.ToString("dd/MM/yy", CultureInfo.InvariantCulture);

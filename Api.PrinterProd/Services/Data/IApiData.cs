@@ -1,7 +1,7 @@
 ﻿using DataLib;
-using api_lo_etiq.Models;
+using Api.PrinterProd.Models;
 
-namespace api_lo_etiq.Services.api_data
+namespace Api.PrinterProd.Services.api_data
 {
     public interface IApiData
     {

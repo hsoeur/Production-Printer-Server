@@ -1,5 +1,5 @@
-﻿using api_lo_etiq.Models;
-using api_lo_etiq.Services.api_data;
+﻿using Api.PrinterProd.Models;
+using Api.PrinterProd.Services.api_data;
 using CmdGenerator;
 using DataLib;
 using Microsoft.AspNetCore.Identity;
@@ -8,7 +8,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 
-namespace api_lo_etiq.Services.Labels
+namespace Api.PrinterProd.Services.Labels
 {
     public class LabelsCreator : ILabelsCreator
     {

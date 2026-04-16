@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace api_lo_etiq.Models
+namespace Api.PrinterProd.Models
 {
     public class LabelDto
     {

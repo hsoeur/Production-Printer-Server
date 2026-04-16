@@ -8,13 +8,13 @@ WORKDIR /src
 RUN dotnet nuget locals all --clear
 
 # Copie uniquement le fichier .csproj et restauration des dépendances
-COPY ["api-lo-etiq/api-lo-etiq.csproj", "./api-lo-etiq/"]
-WORKDIR /src/api-lo-etiq
+COPY ["Api.PrinterProd/Api.PrinterProd.csproj", "./Api.PrinterProd/"]
+WORKDIR /src/Api.PrinterProd
 RUN dotnet restore --disable-parallel --ignore-failed-sources
 
 # Copie du reste des fichiers et compilation en mode Release
 COPY . . 
-RUN dotnet publish "api-lo-etiq/api-lo-etiq.csproj" -c Release -p:TreatWarningsAsErrors=false -o /app/publish
+RUN dotnet publish "Api.PrinterProd/Api.PrinterProd.csproj" -c Release -p:TreatWarningsAsErrors=false -o /app/publish
 
 # ===========================
 # Étape 2 : Exécution avec l'image .NET Runtime pour alléger l'image
@@ -39,4 +39,4 @@ ENV ASPNETCORE_URLS=http://+:7001
 EXPOSE 7001
 
 # ✅ Lancement de l’application en mode production
-CMD ["dotnet", "api-lo-etiq.dll"]
+CMD ["dotnet", "Api.PrinterProd.dll"]
