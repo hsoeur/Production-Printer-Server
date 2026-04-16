@@ -194,5 +194,37 @@ namespace Api.PrinterProd.Services.api_data
                 return null;
             }
         }
+
+        public async Task<KitTraceability> GetKitTraceaByUidOFAndSerialNumber(string productUid, int serialNumber)
+        {
+            try
+            {
+                var uri = $"api/KitTraceability/by-product-serial?productUid={productUid}&serialNumber={serialNumber}";
+
+                var response = await _httpClient.GetAsync(uri);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    Log.Information("Aucune traçabilité kit trouvée pour le produit : {productUid} et le numéro de série : {SerialNumber}", productUid, serialNumber);
+                    return null;
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var content = await response.Content.ReadAsStringAsync();
+
+                return JsonConvert.DeserializeObject<KitTraceability>(content);
+            }
+            catch (HttpRequestException httpEx)
+            {
+                Log.Error(httpEx, "Erreur HTTP lors de l'appel à GetKitTraceaByUidOFAndSerialNumber avec l'OF : {ManufacturingOrderUid} et le numéro de série : {SerialNumber}", productUid, serialNumber);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Erreur lors de la récupération de la traçabilité kit pour l'OF : {ManufacturingOrderUid} et le numéro de série : {SerialNumber}", productUid, serialNumber);
+                return null;
+            }
+        }
     }
 }

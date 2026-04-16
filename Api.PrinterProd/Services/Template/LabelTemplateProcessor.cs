@@ -190,5 +190,29 @@ namespace Api.PrinterProd.Services.Template
 
             File.WriteAllText("out_file.txt", templateContent);
         }
+
+        public void ProcessTemplateUnitSerial(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, int serialNumber, Article article, KitTraceability kitTracea, IConfiguration configuration)
+        {
+            string pathToTemplateDir = configuration["Template:Path"];
+            string templateContent = File.ReadAllText(pathToTemplateDir + usageCorrespondanceProduit.TemplateFile);
+
+            templateContent = templateContent.Replace("#SerialNumber#", serialNumber.ToString());
+            templateContent = templateContent.Replace("#ReferenceTier#", article.SupplierReference.ToString());
+            templateContent = templateContent.Replace("#DesignationArticle#", article.Designation.ToString());
+            templateContent = templateContent.Replace("#Version#", versionArticle.Version.ToString());
+            templateContent = templateContent.Replace("#Mac#", kitTracea.ScanFrame.ToString());
+            templateContent = templateContent.Replace("#UidProduit#",kitTracea.Product.ToString());
+            templateContent = templateContent.Replace("#Quantite#", ordreFabrication.Quantity.ToString("0"));
+
+            // Formatage des dates
+            DateTime dateTime = date.DateTime;
+
+            templateContent = templateContent.Replace("#DD/MM/YYYY#", dateTime.ToString("dd/MM/yyyy"));
+
+            File.WriteAllText("out_file.txt", templateContent);
+
+            Log.Information("Template généré pour impression unitaire - Serial Number: {serialNumber}, Product: {productUid}",
+            serialNumber, ordreFabrication.ProductUid);
+        }
     }
 }

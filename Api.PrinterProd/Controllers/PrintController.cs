@@ -32,11 +32,11 @@ namespace Api.PrinterProd.Controllers
         ILabelsCreator labelsCreator,
         IPrinter printer)
         {
-        _apiData = apiData;
-        _labelTemplateProcessor = labelTemplateProcessor;
-        _configuration = configuration;
-        _labelsCreator = labelsCreator;
-        _printer = printer;
+            _apiData = apiData;
+            _labelTemplateProcessor = labelTemplateProcessor;
+            _configuration = configuration;
+            _labelsCreator = labelsCreator;
+            _printer = printer;
         }
 
         [SwaggerOperation(
@@ -81,7 +81,7 @@ namespace Api.PrinterProd.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> PrintCommon([FromQuery] string uidOperateur, [FromQuery] int uidOrdreFabrication, [FromQuery] string uidUsage)
         {
-            if (string.IsNullOrWhiteSpace(uidOperateur) || string.IsNullOrWhiteSpace(uidUsage) || uidOrdreFabrication <=0)
+            if (string.IsNullOrWhiteSpace(uidOperateur) || string.IsNullOrWhiteSpace(uidUsage) || uidOrdreFabrication <= 0)
             {
                 return BadRequest(new ProblemDetails
                 {
@@ -106,7 +106,7 @@ namespace Api.PrinterProd.Controllers
                     });
                 }
 
-                if (ordreFabrication.FirstSerialNumber <100001 && ordreFabrication.FirstSerialNumber !=0)
+                if (ordreFabrication.FirstSerialNumber < 100001 && ordreFabrication.FirstSerialNumber != 0)
                 {
                     Log.Information("Serial number of OF {uidOrdreFabrication} is less than100001", uidOrdreFabrication);
                     return BadRequest(new ProblemDetails
@@ -153,8 +153,19 @@ namespace Api.PrinterProd.Controllers
                     });
                 }
 
-                _labelTemplateProcessor.ProcessTemplateCommon(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, uidOperateur, article, _configuration);
-                int res = await _labelsCreator.ProcessAndCreateLabelsCommon(date, uidOperateur, ordreFabrication, usageCorrespondanceProduit, versionArticle);
+                _labelTemplateProcessor.ProcessTemplateCommon(ordreFabrication,
+                    versionArticle,
+                    usageCorrespondanceProduit,
+                    date,
+                    uidOperateur,
+                    article,
+                    _configuration);
+
+                int res = await _labelsCreator.ProcessAndCreateLabelsCommon(date,
+                    uidOperateur,
+                    ordreFabrication,
+                    usageCorrespondanceProduit,
+                    versionArticle);
 
                 if (res == -1)
                 {
@@ -190,7 +201,7 @@ namespace Api.PrinterProd.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> PartialPrint([FromQuery] string userUid, [FromQuery] int manufacturingOrderuid, [FromQuery] int printQuantity)
         {
-            if (string.IsNullOrWhiteSpace(userUid) || manufacturingOrderuid <=0 || printQuantity <=0)
+            if (string.IsNullOrWhiteSpace(userUid) || manufacturingOrderuid <= 0 || printQuantity <= 0)
             {
                 return BadRequest(new ProblemDetails
                 {
@@ -201,77 +212,77 @@ namespace Api.PrinterProd.Controllers
 
             try
             {
-            DateTimeOffset date = DateTimeOffset.Now;
-            string usage = "Etiquette Lot";
+                DateTimeOffset date = DateTimeOffset.Now;
+                string usage = "Etiquette Lot";
 
-            var ordreFabrication = await _apiData.GetOrdreFabricationWithUidOF(manufacturingOrderuid);
-            if (ordreFabrication == null)
-            {
-                Log.Information("OrdreFabrication not found for uidOrdreFabrication: {uidOrdreFabrication}", manufacturingOrderuid);
-                return NotFound(new ProblemDetails
+                var ordreFabrication = await _apiData.GetOrdreFabricationWithUidOF(manufacturingOrderuid);
+                if (ordreFabrication == null)
                 {
-                    Title = "Ordre de fabrication introuvable",
-                    Detail = $"Aucun ordre de fabrication trouvé pour l'identifiant {manufacturingOrderuid}."
-                });
-            }
+                    Log.Information("OrdreFabrication not found for uidOrdreFabrication: {uidOrdreFabrication}", manufacturingOrderuid);
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Ordre de fabrication introuvable",
+                        Detail = $"Aucun ordre de fabrication trouvé pour l'identifiant {manufacturingOrderuid}."
+                    });
+                }
 
-            if (ordreFabrication.FirstSerialNumber <100001 && ordreFabrication.FirstSerialNumber !=0)
-            {
-                Log.Information("Serial number of OF {uidOrdreFabrication} is less than100001", manufacturingOrderuid);
-                return BadRequest(new ProblemDetails
+                if (ordreFabrication.FirstSerialNumber < 100001 && ordreFabrication.FirstSerialNumber != 0)
                 {
-                    Title = "Numéro de série invalide",
-                    Detail = "Le numéro de série de l'ordre de fabrication est inférieur à100001."
-                });
-            }
+                    Log.Information("Serial number of OF {uidOrdreFabrication} is less than100001", manufacturingOrderuid);
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "Numéro de série invalide",
+                        Detail = "Le numéro de série de l'ordre de fabrication est inférieur à100001."
+                    });
+                }
 
-            var usageCorrespondanceProduit = await _apiData.GetUsageCorrespondanceProduitWithUidProduitUidUsage(ordreFabrication.ProductUid, usage);
-            if (usageCorrespondanceProduit == null)
-            {
-                Log.Information("UsageCorrespondanceProduit not found for uidProduit: {uidProduit} and uidUsage: {uidUsage}", ordreFabrication.ProductUid, usage);
-                return NotFound(new ProblemDetails
+                var usageCorrespondanceProduit = await _apiData.GetUsageCorrespondanceProduitWithUidProduitUidUsage(ordreFabrication.ProductUid, usage);
+                if (usageCorrespondanceProduit == null)
                 {
-                    Title = "Usage introuvable",
-                    Detail = $"Aucun usage trouvé pour le produit {ordreFabrication.ProductUid} et usage {usage}."
-                });
-            }
+                    Log.Information("UsageCorrespondanceProduit not found for uidProduit: {uidProduit} and uidUsage: {uidUsage}", ordreFabrication.ProductUid, usage);
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Usage introuvable",
+                        Detail = $"Aucun usage trouvé pour le produit {ordreFabrication.ProductUid} et usage {usage}."
+                    });
+                }
 
-            var versionArticle = await _apiData.GetVersionWithUidArticle(ordreFabrication.ProductUid);
-            if (versionArticle == null)
-            {
-                Log.Information("VersionArticle not found for uidProduit: {uidProduit}", ordreFabrication.ProductUid);
-                return NotFound(new ProblemDetails
+                var versionArticle = await _apiData.GetVersionWithUidArticle(ordreFabrication.ProductUid);
+                if (versionArticle == null)
                 {
-                    Title = "Version introuvable",
-                    Detail = $"Aucune version trouvée pour le produit {ordreFabrication.ProductUid}."
-                });
-            }
+                    Log.Information("VersionArticle not found for uidProduit: {uidProduit}", ordreFabrication.ProductUid);
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Version introuvable",
+                        Detail = $"Aucune version trouvée pour le produit {ordreFabrication.ProductUid}."
+                    });
+                }
 
-            var article = await _apiData.GetArticleByUidArticle(ordreFabrication.ProductUid);
-            if (article == null)
-            {
-                Log.Information("Article not found for uidProduit: {uidProduit}", ordreFabrication.ProductUid);
-                return NotFound(new ProblemDetails
+                var article = await _apiData.GetArticleByUidArticle(ordreFabrication.ProductUid);
+                if (article == null)
                 {
-                    Title = "Article introuvable",
-                    Detail = $"Aucun article trouvé pour le produit {ordreFabrication.ProductUid}."
-                });
-            }
+                    Log.Information("Article not found for uidProduit: {uidProduit}", ordreFabrication.ProductUid);
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Article introuvable",
+                        Detail = $"Aucun article trouvé pour le produit {ordreFabrication.ProductUid}."
+                    });
+                }
 
-            _labelTemplateProcessor.ProcessTemplatePartialPrint(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, userUid, article, printQuantity, _configuration);
-            int res = _labelsCreator.ProcessAndCreateLabelsPartialPrint(date, userUid, ordreFabrication, usageCorrespondanceProduit, versionArticle, printQuantity);
+                _labelTemplateProcessor.ProcessTemplatePartialPrint(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, userUid, article, printQuantity, _configuration);
+                int res = _labelsCreator.ProcessAndCreateLabelsPartialPrint(date, userUid, ordreFabrication, usageCorrespondanceProduit, versionArticle, printQuantity);
 
-            if (res == -1)
-            {
-                Log.Information("Label already in database for uidOrdreFabrication: {uidOrdreFabrication}, uidOperateur: {uidOperateur}", manufacturingOrderuid, userUid);
-                return BadRequest(new ProblemDetails
+                if (res == -1)
                 {
-                    Title = "Étiquette déjà existante",
-                    Detail = "L'étiquette existe déjà en base de données."
-                });
-            }
+                    Log.Information("Label already in database for uidOrdreFabrication: {uidOrdreFabrication}, uidOperateur: {uidOperateur}", manufacturingOrderuid, userUid);
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "Étiquette déjà existante",
+                        Detail = "L'étiquette existe déjà en base de données."
+                    });
+                }
 
-            return Ok("SUCCESS");
+                return Ok("SUCCESS");
             }
             catch (Exception ex)
             {
@@ -349,11 +360,11 @@ namespace Api.PrinterProd.Controllers
                 if (version == null)
                 {
                     Log.Information("VersionArticle not found for uidProduit: {uidProduit}, using default version", ordre.ProductUid);
-                    version = new FirmwareVersion() 
-                    { 
-                        FirmwareVersionUid = Guid.NewGuid().ToString(), 
-                        ArticleUid = ordre.ProductUid, 
-                        Version = "Vxx.xx" 
+                    version = new FirmwareVersion()
+                    {
+                        FirmwareVersionUid = Guid.NewGuid().ToString(),
+                        ArticleUid = ordre.ProductUid,
+                        Version = "Vxx.xx"
                     };
                 }
 
@@ -410,7 +421,7 @@ namespace Api.PrinterProd.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ReprintEntireLot([FromQuery] int ordreFabrication, [FromQuery] string usageEti, [FromQuery] string uidOperateur)
         {
-            if (ordreFabrication <=0 || string.IsNullOrWhiteSpace(usageEti) || string.IsNullOrWhiteSpace(uidOperateur))
+            if (ordreFabrication <= 0 || string.IsNullOrWhiteSpace(usageEti) || string.IsNullOrWhiteSpace(uidOperateur))
             {
                 return BadRequest(new ProblemDetails
                 {
@@ -450,11 +461,11 @@ namespace Api.PrinterProd.Controllers
                 if (version == null)
                 {
                     Log.Information("VersionArticle not found for uidProduit: {uidProduit}, using default version", ordre.ProductUid);
-                    version = new FirmwareVersion() 
-                    { 
-                        FirmwareVersionUid = Guid.NewGuid().ToString(), 
-                        ArticleUid = ordre.ProductUid, 
-                        Version = "Vxx.xx" 
+                    version = new FirmwareVersion()
+                    {
+                        FirmwareVersionUid = Guid.NewGuid().ToString(),
+                        ArticleUid = ordre.ProductUid,
+                        Version = "Vxx.xx"
                     };
                 }
 
@@ -571,8 +582,8 @@ namespace Api.PrinterProd.Controllers
             {
                 return BadRequest(new ProblemDetails
                 {
-                Title = "Paramètre(s) invalide(s)",
-                Detail = "Les paramètres 'articleUid' et 'quantity' sont requis."
+                    Title = "Paramètre(s) invalide(s)",
+                    Detail = "Les paramètres 'articleUid' et 'quantity' sont requis."
                 });
             }
 
@@ -614,6 +625,120 @@ namespace Api.PrinterProd.Controllers
         {
             Log.Error("L'imprimante n'a pas sorti les étiquettes");
             return Ok("");
+        }
+
+        /// <summary>
+        /// Méthode PrintBySerialNumber responsable de l'impression d'une étiquette pour un numéro de série spécifique.
+        /// </summary>
+        [SwaggerOperation(
+        Summary = "Impression d'étiquette par numéro de série",
+        Description = "Ce endpoint permet d'imprimer une étiquette pour un produit spécifique en utilisant un numéro de série, un ordre de fabrication et un usage.",
+        OperationId = "PrintBySerialNumber"
+        )]
+        [HttpGet]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> PrintBySerialNumber([FromQuery] int manufacturingOrderUid, [FromQuery] string productUid, [FromQuery] string uidUsage, [FromQuery] int serialNumber)
+        {
+            if (manufacturingOrderUid <= 0 || string.IsNullOrWhiteSpace(uidUsage) || serialNumber < 0)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Paramètre(s) invalide(s)",
+                    Detail = "Les paramètres 'manufacturingOrderUid', 'uidUsage' et 'serialNumber' sont requis et doivent être valides."
+                });
+            }
+
+            try
+            {
+                Log.Information("PrintBySerialNumber called with manufacturingOrderUid={manufacturingOrderUid}, uidUsage={uidUsage}, serialNumber={serialNumber}",
+                 manufacturingOrderUid, uidUsage, serialNumber);
+
+                DateTimeOffset date = DateTimeOffset.Now;
+
+                var ordreFabrication = await _apiData.GetOrdreFabricationWithUidOF(manufacturingOrderUid);
+                if (ordreFabrication == null)
+                {
+                    Log.Information("OrdreFabrication not found for manufacturingOrderUid: {manufacturingOrderUid}", manufacturingOrderUid);
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Ordre de fabrication introuvable",
+                        Detail = $"Aucun ordre de fabrication trouvé pour l'identifiant {manufacturingOrderUid}."
+                    });
+                }
+
+                // Validation du numéro de série
+                if (serialNumber != 0 && serialNumber < 100001)
+                {
+                    Log.Information("Serial number {serialNumber} is less than 100001", serialNumber);
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "Numéro de série invalide",
+                        Detail = "Le numéro de série doit être égal à 0 ou supérieur ou égal à 100001."
+                    });
+                }
+
+                var usageCorrespondanceProduit = await _apiData.GetUsageCorrespondanceProduitWithUidProduitUidUsage(ordreFabrication.ProductUid, uidUsage);
+                if (usageCorrespondanceProduit == null)
+                {
+                    Log.Information("UsageCorrespondanceProduit not found for uidProduit: {uidProduit} and uidUsage: {uidUsage}", productUid, uidUsage);
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Usage introuvable",
+                        Detail = $"Aucun usage trouvé pour le produit {productUid} et usage {uidUsage}."
+                    });
+                }
+
+                var versionArticle = await _apiData.GetVersionWithUidArticle(ordreFabrication.ProductUid);
+                if (versionArticle == null)
+                {
+                    Log.Information("VersionArticle not found for uidProduit: {uidProduit}, using default version", ordreFabrication.ProductUid);
+                    versionArticle = new FirmwareVersion()
+                    {
+                        FirmwareVersionUid = Guid.NewGuid().ToString(),
+                        ArticleUid = ordreFabrication.ProductUid,
+                        Version = "Vxx.xx"
+                    };
+                }
+
+                var article = await _apiData.GetArticleByUidArticle(ordreFabrication.ProductUid);
+                if (article == null)
+                {
+                    Log.Information("Article not found for uidProduit: {uidProduit}", ordreFabrication.ProductUid);
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Article introuvable",
+                        Detail = $"Aucun article trouvé pour le produit {ordreFabrication.ProductUid}."
+                    });
+                }
+
+                var kitTracea = await _apiData.GetKitTraceaByUidOFAndSerialNumber(productUid, serialNumber);
+                if (kitTracea == null)
+                {
+                    Log.Information("KitTraceability not found for manufacturingOrderUid: {manufacturingOrderUid} and serialNumber: {serialNumber}", manufacturingOrderUid, serialNumber);
+                    return NotFound(new ProblemDetails
+                    {
+                        Title = "Traçabilité kit introuvable",
+                        Detail = $"Aucune traçabilité kit trouvée pour l'ordre de fabrication {manufacturingOrderUid} et le numéro de série {serialNumber}."
+                    });
+                }
+
+                _labelTemplateProcessor.ProcessTemplateUnitSerial(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, serialNumber, article, kitTracea, _configuration);
+
+                Log.Information("PrintBySerialNumber completed successfully for serial number: {serialNumber}", serialNumber);
+                return Ok("SUCCESS");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Erreur lors de PrintBySerialNumber");
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Erreur interne",
+                    Detail = ex.Message
+                });
+            }
         }
     }
 }
