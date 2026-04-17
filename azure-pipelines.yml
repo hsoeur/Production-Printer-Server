@@ -31,7 +31,7 @@ stages:
 
     - script: |
         echo "🏗️ Construction de l'image Docker..."
-        docker build --build-arg APP_PORT=$(APP_PORT) -t $(IMAGE_NAME):latest -f api-lo-etiq/Dockerfile.prod .
+        docker build --build-arg APP_PORT=$(APP_PORT) -t $(IMAGE_NAME):latest -f Api.PrinterProd/Dockerfile.prod .
       displayName: "🐳 Build Docker"
 
     - script: |
