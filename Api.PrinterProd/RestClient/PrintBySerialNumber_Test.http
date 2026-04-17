@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:5298
+
+### 🔹 Cas 1
+@uidUsage1 = Gateway Montage Portail ASM TKE
+
+GET {{baseUrl}}/api/Print/PrintBySerialNumber?manufacturingOrderUid=26474&productUid=51PT00634A&uidUsage={{uidUsage1}}&serialNumber=100016
+
+###
+
+### 🔹 Cas 2
+@uidUsage2 = Gateway Montage Mac TKE
+
+GET {{baseUrl}}/api/Print/PrintBySerialNumber?manufacturingOrderUid=26474&productUid=51PT00634A&uidUsage={{uidUsage2}}&serialNumber=100016

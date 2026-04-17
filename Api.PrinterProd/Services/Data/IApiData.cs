@@ -15,6 +15,6 @@ namespace Api.PrinterProd.Services.api_data
         Task<Article> GetArticleByUidArticle(string uidProduit);
         Task<Label> GetLabelLastSerialNumberPrinted(int manufacturingOrderUid);
         Task<User> GetUserByUid(string userUid);
-        Task<KitTraceability> GetKitTraceaByUidOFAndSerialNumber(string productUid, int serialNumber);
+        Task<KitTraceability> GetKitTraceaByProductAndSerialNumber(string productUid, int serialNumber);
     }
 }

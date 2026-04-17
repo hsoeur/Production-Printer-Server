@@ -195,7 +195,7 @@ namespace Api.PrinterProd.Services.api_data
             }
         }
 
-        public async Task<KitTraceability> GetKitTraceaByUidOFAndSerialNumber(string productUid, int serialNumber)
+        public async Task<KitTraceability> GetKitTraceaByProductAndSerialNumber(string productUid, int serialNumber)
         {
             try
             {

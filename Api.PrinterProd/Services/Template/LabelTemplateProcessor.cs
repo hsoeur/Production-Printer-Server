@@ -195,18 +195,23 @@ namespace Api.PrinterProd.Services.Template
         {
             string pathToTemplateDir = configuration["Template:Path"];
             string templateContent = File.ReadAllText(pathToTemplateDir + usageCorrespondanceProduit.TemplateFile);
-
-            templateContent = templateContent.Replace("#SerialNumber#", serialNumber.ToString());
-            templateContent = templateContent.Replace("#ReferenceTier#", article.SupplierReference.ToString());
-            templateContent = templateContent.Replace("#DesignationArticle#", article.Designation.ToString());
-            templateContent = templateContent.Replace("#Version#", versionArticle.Version.ToString());
-            templateContent = templateContent.Replace("#Mac#", kitTracea.ScanFrame.ToString());
-            templateContent = templateContent.Replace("#UidProduit#",kitTracea.Product.ToString());
-            templateContent = templateContent.Replace("#Quantite#", ordreFabrication.Quantity.ToString("0"));
-
-            // Formatage des dates
+            
             DateTime dateTime = date.DateTime;
 
+            templateContent = templateContent.Replace("#SerialNumber#", serialNumber.ToString());
+            //templateContent = templateContent.Replace("#ReferenceTier#", article.SupplierReference.ToString());
+            //templateContent = templateContent.Replace("#DesignationArticle#", article.Designation.ToString());
+            templateContent = templateContent.Replace("#Version#", versionArticle.Version.ToString());
+            templateContent = templateContent.Replace("#Mac#", kitTracea.ScanFrame.ToString());
+            //templateContent = templateContent.Replace("#UidProduit#",kitTracea.Product.ToString());
+            templateContent = templateContent.Replace("#Quantite#", ordreFabrication.Quantity.ToString("0"));
+            
+            // Extraction des 6 derniers caractères de article.ArticleUid
+            string uidProduitCut = article.ArticleUid.Length >= 6 
+            ? article.ArticleUid.Substring(article.ArticleUid.Length - 6) 
+                : article.ArticleUid.PadLeft(6);
+            templateContent = templateContent.Replace("#UidProduitCut#", uidProduitCut);
+            
             templateContent = templateContent.Replace("#DD/MM/YYYY#", dateTime.ToString("dd/MM/yyyy"));
 
             File.WriteAllText("out_file.txt", templateContent);
