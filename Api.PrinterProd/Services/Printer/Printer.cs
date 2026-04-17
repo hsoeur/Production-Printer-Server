@@ -174,7 +174,7 @@ namespace Api.PrinterProd.Services.Printer
                 printer = _configuration["Printer:OtherThanLot"];
             }
 
-            
+
             string user = "AMPHI-PROD\\adminprod"; // Utilisateur avec domaine
             string password = "Paris2024JO*"; // Mot de passe
 
@@ -226,6 +226,102 @@ namespace Api.PrinterProd.Services.Printer
             catch (Exception ex)
             {
                 Log.Error($"Erreur lors de l'exécution de la commande : {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Méthode pour imprimer le fichier out_file.txt via FTP pour l'impression par numéro de série.
+        /// Utilisée en production depuis le conteneur Docker.
+        /// </summary>
+        public bool PrintBySerialNumberFtp()
+        {
+            string ftpServer = "192.168.1.201";
+            string ftpUser = "ftpprint";
+            string ftpPassword = "print";
+            string fileName = "out_file.txt";
+
+            Log.Information("🚀 Début du processus d'impression FTP pour PrintBySerialNumber...");
+
+            if (!File.Exists(fileName))
+            {
+                Log.Error($"❌ ERREUR : Le fichier '{fileName}' n'existe pas !");
+                return false;
+            }
+
+            try
+            {
+                // 🔹 Lecture du contenu du fichier pour logs
+                string fileContent = File.ReadAllText(fileName);
+
+                // 🔹 Log du contenu (tronqué si trop long)
+                if (fileContent.Length > 2000)
+                {
+                    Log.Debug($"📄 Contenu du fichier '{fileName}' (tronqué à 2000 caractères) :\n{fileContent.Substring(0, 2000)}\n...");
+                }
+                else
+                {
+                    Log.Debug($"📄 Contenu complet du fichier '{fileName}' :\n{fileContent}");
+                }
+
+                // 🔹 Exécution de la commande FTP
+                return ExecuteFtpCommandForSerial(ftpServer, ftpUser, ftpPassword, fileName);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, $"Erreur lors de la lecture du fichier '{fileName}'");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Exécute la commande curl pour envoyer le fichier via FTP (pour PrintBySerialNumber).
+        /// </summary>
+        private bool ExecuteFtpCommandForSerial(string ftpServer, string ftpUser, string ftpPassword, string filePath)
+        {
+            string ftpUrl = $"ftp://{ftpUser}:{ftpPassword}@{ftpServer}/";
+            string command = $"curl -v -T {filePath} {ftpUrl}";
+
+            Log.Information($"🚀 Envoi du fichier {filePath} vers {ftpServer} via FTP...");
+            Log.Debug($"Commande curl : {command}");
+
+            try
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = "/bin/sh",
+                    Arguments = $"-c \"{command}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using Process process = new Process { StartInfo = startInfo };
+                process.Start();
+
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+
+                process.WaitForExit();
+                int exitCode = process.ExitCode;
+
+                Log.Information($"📜 Sortie curl : {output}");
+
+                if (exitCode == 0)
+                {
+                    Log.Information($"✅ Envoi FTP réussi (Code de sortie : {exitCode})");
+                    return true;
+                }
+                else
+                {
+                    Log.Error($"❌ Erreur FTP (Code de sortie : {exitCode}) : {error}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, $"🚨 Exception lors de l'envoi FTP : {ex.Message}");
                 return false;
             }
         }

@@ -6,5 +6,6 @@
         public void PrintFtp();
 
         public bool PrintFileTest(string usage);
+        public bool PrintBySerialNumberFtp();
     }
 }

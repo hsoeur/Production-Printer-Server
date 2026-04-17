@@ -727,6 +727,18 @@ namespace Api.PrinterProd.Controllers
 
                 _labelTemplateProcessor.ProcessTemplateUnitSerial(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, serialNumber, article, kitTracea, _configuration);
 
+                // Impression via FTP pour la production
+                bool printSuccess = _printer.PrintBySerialNumberFtp();
+                if (!printSuccess)
+                {
+                    Log.Error("L'impression FTP a échoué pour le numéro de série: {serialNumber}", serialNumber);
+                    return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                    {
+                        Title = "Erreur d'impression",
+                        Detail = "L'impression via FTP a échoué."
+                    });
+                }
+
                 Log.Information("PrintBySerialNumber completed successfully for serial number: {serialNumber}", serialNumber);
                 return Ok("SUCCESS");
             }
