@@ -222,13 +222,17 @@ namespace Api.PrinterProd.Services.Template
 
             // Extraction des 6 derniers caractères de article.ArticleUid
             string uidProduitCut = article.ArticleUid.Length >= 6
-     ? article.ArticleUid.Substring(article.ArticleUid.Length - 6)
-       : article.ArticleUid.PadLeft(6);
+             ? article.ArticleUid.Substring(article.ArticleUid.Length - 6)
+               : article.ArticleUid.PadLeft(6);
 
             string uidProduit = string.Empty;
-            if (ordreFabrication.ProductUid == "71PT00634A" || ordreFabrication.ProductUid == "71PT00641")
+            if (ordreFabrication.ProductUid == "71PT00634A")
             {
                 uidProduit = "61PT00634A";
+            }
+            else if (ordreFabrication.ProductUid == "71PT00641")
+            {
+                uidProduit = "61PT00641";
             }
             else if (ordreFabrication.ProductUid == "71PT00640A" || ordreFabrication.ProductUid == "71PT00643")
             {
