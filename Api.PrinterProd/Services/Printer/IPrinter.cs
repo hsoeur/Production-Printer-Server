@@ -2,10 +2,10 @@
 {
     public interface IPrinter
     {
-        public void ExecutePrinting(string usage);
-        public void PrintFtp();
+        public void ExecutePrinting(string usage, string filePath);
+        public void PrintFtp(string filePath);
 
-        public bool PrintFileTest(string usage);
-        public bool PrintBySerialNumberFtp();
+        public bool PrintFileTest(string usage, string filePath);
+        public bool PrintBySerialNumberFtp(string filePath);
     }
 }

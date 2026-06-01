@@ -31,11 +31,11 @@ namespace Api.PrinterProd.Services.Template
         /// <param name="quantite"></param>
         /// <param name="conf"></param>
         /// <returns>string : contenu du fichier out d'impression</returns>
-        void ProcessTemplateReprint(Label etiquette, ManufacturingOrder ordre, LabelTemplate? usage, FirmwareVersion? version, Article article, IConfiguration configuration);
-        void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, FirmwareVersion version, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string uidOperateur, Article article, IConfiguration configuration);
-        void ProcessTemplatePartialPrint(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string userUid, Article article, int printQuantity, IConfiguration configuration);
-        void ProcessTemplateArtBorne(Article article, string quantity, IConfiguration configuration);
-        void ProcessTemplateInitials(string initials, string quantity, IConfiguration configuration);
-        void ProcessTemplateUnitSerial(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, int serialNumber, Article article, KitTraceability kitTracea, IConfiguration configuration);
+        void ProcessTemplateReprint(Label etiquette, ManufacturingOrder ordre, LabelTemplate? usage, FirmwareVersion? version, Article article, IConfiguration configuration, string outputFilePath);
+        void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, FirmwareVersion version, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string uidOperateur, Article article, IConfiguration configuration, string outputFilePath);
+        void ProcessTemplatePartialPrint(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string userUid, Article article, int printQuantity, IConfiguration configuration, string outputFilePath);
+        void ProcessTemplateArtBorne(Article article, string quantity, IConfiguration configuration, string outputFilePath);
+        void ProcessTemplateInitials(string initials, string quantity, IConfiguration configuration, string outputFilePath);
+        void ProcessTemplateUnitSerial(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, int serialNumber, Article article, KitTraceability kitTracea, IConfiguration configuration, string outputFilePath);
     }
 }

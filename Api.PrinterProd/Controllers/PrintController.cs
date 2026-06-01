@@ -51,7 +51,7 @@ namespace Api.PrinterProd.Controllers
         {
             try
             {
-                _printer.PrintFileTest("Etiquette Lot");
+                _printer.PrintFileTest("Etiquette Lot", "out_file.txt");
                 Log.Information("Impression Terminée avec Succès");
                 return Ok("Impression Successful.");
             }
@@ -92,6 +92,7 @@ namespace Api.PrinterProd.Controllers
 
             try
             {
+                using var outputFile = TemporaryPrintFile.Create();
                 Log.Information("PrintCommon called with uidOperateur={uidOperateur}, uidOrdreFabrication={uidOrdreFabrication}, uidUsage={uidUsage}", uidOperateur, uidOrdreFabrication, uidUsage);
                 DateTimeOffset date = DateTimeOffset.Now;
 
@@ -159,13 +160,15 @@ namespace Api.PrinterProd.Controllers
                     date,
                     uidOperateur,
                     article,
-                    _configuration);
+                    _configuration,
+                    outputFile.Path);
 
                 int res = await _labelsCreator.ProcessAndCreateLabelsCommon(date,
                     uidOperateur,
                     ordreFabrication,
                     usageCorrespondanceProduit,
-                    versionArticle);
+                    versionArticle,
+                    outputFile.Path);
 
                 if (res == -1)
                 {
@@ -212,6 +215,7 @@ namespace Api.PrinterProd.Controllers
 
             try
             {
+                using var outputFile = TemporaryPrintFile.Create();
                 DateTimeOffset date = DateTimeOffset.Now;
                 string usage = "Etiquette Lot";
 
@@ -269,8 +273,8 @@ namespace Api.PrinterProd.Controllers
                     });
                 }
 
-                _labelTemplateProcessor.ProcessTemplatePartialPrint(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, userUid, article, printQuantity, _configuration);
-                int res = _labelsCreator.ProcessAndCreateLabelsPartialPrint(date, userUid, ordreFabrication, usageCorrespondanceProduit, versionArticle, printQuantity);
+                _labelTemplateProcessor.ProcessTemplatePartialPrint(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, userUid, article, printQuantity, _configuration, outputFile.Path);
+                int res = _labelsCreator.ProcessAndCreateLabelsPartialPrint(date, userUid, ordreFabrication, usageCorrespondanceProduit, versionArticle, printQuantity, outputFile.Path);
 
                 if (res == -1)
                 {
@@ -323,6 +327,7 @@ namespace Api.PrinterProd.Controllers
 
             try
             {
+                using var outputFile = TemporaryPrintFile.Create();
                 var etiquette = await _apiData.GetEtiquetteByUidAuthenti(uidAuthentiEtiquette);
                 if (etiquette == null)
                 {
@@ -381,9 +386,9 @@ namespace Api.PrinterProd.Controllers
 
                 try
                 {
-                    _labelTemplateProcessor.ProcessTemplateReprint(etiquette, ordre, usage, version, article, _configuration);
+                    _labelTemplateProcessor.ProcessTemplateReprint(etiquette, ordre, usage, version, article, _configuration, outputFile.Path);
                     Log.Information("Reprint action called with {LabelTypeUid} ID", usage.LabelTypeUid);
-                    _printer.PrintFileTest(usage.LabelTypeUid);
+                    _printer.PrintFileTest(usage.LabelTypeUid, outputFile.Path);
                 }
                 catch (Exception ex)
                 {
@@ -435,6 +440,7 @@ namespace Api.PrinterProd.Controllers
 
             try
             {
+                using var outputFile = TemporaryPrintFile.Create();
                 var ordre = await _apiData.GetOrdreFabricationWithUidOF(ordreFabrication);
                 if (ordre == null)
                 {
@@ -482,9 +488,9 @@ namespace Api.PrinterProd.Controllers
 
                 try
                 {
-                    _labelTemplateProcessor.ProcessTemplateCommon(ordre, version, usage, date, uidOperateur, article, _configuration);
+                    _labelTemplateProcessor.ProcessTemplateCommon(ordre, version, usage, date, uidOperateur, article, _configuration, outputFile.Path);
                     Log.Information("Reprint action called with {LabelTypeUid} ID", usage.LabelTypeUid);
-                    _printer.PrintFileTest(usage.LabelTypeUid);
+                    _printer.PrintFileTest(usage.LabelTypeUid, outputFile.Path);
                 }
                 catch (Exception ex)
                 {
@@ -535,6 +541,7 @@ namespace Api.PrinterProd.Controllers
 
             try
             {
+                using var outputFile = TemporaryPrintFile.Create();
                 var user = await _apiData.GetUserByUid(userUid);
                 if (user == null)
                 {
@@ -549,8 +556,8 @@ namespace Api.PrinterProd.Controllers
                 string initials = $"{(string.IsNullOrEmpty(user.LastName) ? "" : user.LastName[0].ToString().ToUpper())}. " +
                 $"{(string.IsNullOrEmpty(user.FirstName) ? "" : user.FirstName[0].ToString().ToUpper())} ({user.UserUid})";
 
-                _labelTemplateProcessor.ProcessTemplateInitials(initials, quantity, _configuration);
-                _printer.ExecutePrinting("Etiquette Lot");
+                _labelTemplateProcessor.ProcessTemplateInitials(initials, quantity, _configuration, outputFile.Path);
+                _printer.ExecutePrinting("Etiquette Lot", outputFile.Path);
 
                 Log.Information("PrintInitials completed with initials: {initials}", initials);
                 return Ok("SUCCESS");
@@ -589,6 +596,7 @@ namespace Api.PrinterProd.Controllers
 
             try
             {
+                using var outputFile = TemporaryPrintFile.Create();
                 var art = await _apiData.GetArticleByUidArticle(articleUid);
                 if (art == null)
                 {
@@ -599,8 +607,8 @@ namespace Api.PrinterProd.Controllers
                         Detail = $"Aucun article trouvé pour l'identifiant {articleUid}."
                     });
                 }
-                _labelTemplateProcessor.ProcessTemplateArtBorne(art, quantity, _configuration);
-                _printer.PrintFtp();
+                _labelTemplateProcessor.ProcessTemplateArtBorne(art, quantity, _configuration, outputFile.Path);
+                _printer.PrintFtp(outputFile.Path);
                 return Ok(art);
             }
             catch (Exception ex)
@@ -653,6 +661,7 @@ namespace Api.PrinterProd.Controllers
 
             try
             {
+                using var outputFile = TemporaryPrintFile.Create();
                 Log.Information("PrintBySerialNumber called with manufacturingOrderUid={manufacturingOrderUid}, uidUsage={uidUsage}, serialNumber={serialNumber}",
                  manufacturingOrderUid, uidUsage, serialNumber);
 
@@ -725,10 +734,10 @@ namespace Api.PrinterProd.Controllers
                     });
                 }
 
-                _labelTemplateProcessor.ProcessTemplateUnitSerial(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, serialNumber, article, kitTracea, _configuration);
+                _labelTemplateProcessor.ProcessTemplateUnitSerial(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, serialNumber, article, kitTracea, _configuration, outputFile.Path);
 
                 // Impression via FTP pour la production
-                bool printSuccess = _printer.PrintBySerialNumberFtp();
+                bool printSuccess = _printer.PrintBySerialNumberFtp(outputFile.Path);
                 if (!printSuccess)
                 {
                     Log.Error("L'impression FTP a échoué pour le numéro de série: {serialNumber}", serialNumber);
@@ -752,5 +761,6 @@ namespace Api.PrinterProd.Controllers
                 });
             }
         }
+
     }
 }

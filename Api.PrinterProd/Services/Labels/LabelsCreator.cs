@@ -59,7 +59,7 @@ namespace Api.PrinterProd.Services.Labels
         /// Lancement de la commande d'impression.
         /// </summary>
         /// <param name="usageCorrespondanceProduit"></param>
-        private void ExecutePrinting(LabelTemplate usageCorrespondanceProduit)
+        private void ExecutePrinting(LabelTemplate usageCorrespondanceProduit, string outputFilePath)
         {
             string printer = _configuration["Printer:Share"];
 
@@ -76,7 +76,7 @@ namespace Api.PrinterProd.Services.Labels
             string printerLinux = $"//{printer.Replace("\\\\", "").Replace("\\", "/")}";
 
             // Construction de la commande `smbclient`
-            string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put out_file.txt\"";
+            string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put \\\"{outputFilePath}\\\"\"";
 
             Log.Information($"CommandBrady : {commandBrady}");
 
@@ -134,7 +134,7 @@ namespace Api.PrinterProd.Services.Labels
         /// <param name="usageTemplate"></param>
         /// <param name="version"></param>
         /// <returns></returns>
-        public async Task<int> ProcessAndCreateLabelsCommon(DateTimeOffset date, string uidOperateur, ManufacturingOrder? ordreFabrication, LabelTemplate? usageTemplate, FirmwareVersion? version)
+        public async Task<int> ProcessAndCreateLabelsCommon(DateTimeOffset date, string uidOperateur, ManufacturingOrder? ordreFabrication, LabelTemplate? usageTemplate, FirmwareVersion? version, string outputFilePath)
         {
             int currentSN = ordreFabrication.FirstSerialNumber;
 
@@ -232,7 +232,7 @@ namespace Api.PrinterProd.Services.Labels
 
                 if (!isLabelInDb)
                 {
-                    ExecutePrinting(usageTemplate);
+                    ExecutePrinting(usageTemplate, outputFilePath);
                 }
 
                 return 0;
@@ -240,7 +240,7 @@ namespace Api.PrinterProd.Services.Labels
             }
             else
             {
-                ret = NominalLabelCreation(date, uidOperateur, ordreFabrication, usageTemplate, version, currentSN, out isLabelInDb, out quantite, persoUsage);
+                ret = NominalLabelCreation(date, uidOperateur, ordreFabrication, usageTemplate, version, currentSN, out isLabelInDb, out quantite, persoUsage, outputFilePath);
             }
 
             return ret;
@@ -248,7 +248,7 @@ namespace Api.PrinterProd.Services.Labels
 
 
 
-        private int NominalLabelCreation(DateTimeOffset date, string uidOperateur, ManufacturingOrder? ordreFabrication, LabelTemplate? usageTemplate, FirmwareVersion? version, int currentSN, out bool isLabelInDb, out int quantite, string persoUsage)
+        private int NominalLabelCreation(DateTimeOffset date, string uidOperateur, ManufacturingOrder? ordreFabrication, LabelTemplate? usageTemplate, FirmwareVersion? version, int currentSN, out bool isLabelInDb, out int quantite, string persoUsage, string outputFilePath)
         {
             ParseQuantityOF(ordreFabrication.Quantity, out isLabelInDb, out quantite);
 
@@ -307,13 +307,13 @@ namespace Api.PrinterProd.Services.Labels
 
             if (!isLabelInDb)
             {
-                ExecutePrinting(usageTemplate);
+                ExecutePrinting(usageTemplate, outputFilePath);
             }
 
             return 0;
         }
 
-        public int ProcessAndCreateLabelsPartialPrint(DateTimeOffset date, string userUid, ManufacturingOrder ordreFabrication, LabelTemplate template, FirmwareVersion version, int printQuantity)
+        public int ProcessAndCreateLabelsPartialPrint(DateTimeOffset date, string userUid, ManufacturingOrder ordreFabrication, LabelTemplate template, FirmwareVersion version, int printQuantity, string outputFilePath)
         {
             try
             {
@@ -358,7 +358,7 @@ namespace Api.PrinterProd.Services.Labels
 
                 if (!isLabelInDb)
                 {
-                    ExecutePrinting(template);
+                    ExecutePrinting(template, outputFilePath);
                 }
 
                 return 0;

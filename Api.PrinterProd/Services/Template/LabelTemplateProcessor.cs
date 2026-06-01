@@ -8,7 +8,7 @@ namespace Api.PrinterProd.Services.Template
 {
     public class LabelTemplateProcessor : ILabelTemplateProcessor
     {
-        public void ProcessTemplateArtBorne(Article article, string quantity, IConfiguration configuration)
+        public void ProcessTemplateArtBorne(Article article, string quantity, IConfiguration configuration, string outputFilePath)
         {
             string pathToTemplateDir = configuration["Template:PathArtBorne"];
 
@@ -19,8 +19,8 @@ namespace Api.PrinterProd.Services.Template
             templateContent = templateContent.Replace("#CodeArticleHorizon#", article.SupplierReference);
             templateContent = templateContent.Replace("#Quantite#", quantity);
 
-            File.WriteAllText("out_file_art_borne.txt", templateContent);
-            Log.Information("Fichier out_file_art_borne.txt généré: {OutputContent}", templateContent);
+            File.WriteAllText(outputFilePath, templateContent);
+            Log.Information("Fichier {OutputFilePath} généré: {OutputContent}", outputFilePath, templateContent);
         }
 
         /// <summary>
@@ -32,7 +32,7 @@ namespace Api.PrinterProd.Services.Template
         /// <param name="date"></param>
         /// <param name="uidOperateur"></param>
         /// <param name="configuration"></param>
-        public void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, FirmwareVersion version, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string uidOperateur, Article article, IConfiguration configuration)
+        public void ProcessTemplateCommon(ManufacturingOrder ordreFabrication, FirmwareVersion version, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string uidOperateur, Article article, IConfiguration configuration, string outputFilePath)
         {
             string pathToTemplateDir = configuration["Template:Path"];
             string templateFilePath = pathToTemplateDir + usageCorrespondanceProduit.TemplateFile;
@@ -74,11 +74,11 @@ namespace Api.PrinterProd.Services.Template
             templateContent = templateContent.Replace("#OffsetXLpt2#", configuration["LPT2:OffsetX"]);
             templateContent = templateContent.Replace("#OffsetYLpt2#", configuration["LPT2:OffsetY"]);
 
-            File.WriteAllText("out_file.txt", templateContent);
-            Log.Information("Fichier out_file.txt généré: {OutputContent}", templateContent);
+            File.WriteAllText(outputFilePath, templateContent);
+            Log.Information("Fichier {OutputFilePath} généré: {OutputContent}", outputFilePath, templateContent);
         }
 
-        public void ProcessTemplateInitials(string initials, string quantity, IConfiguration configuration)
+        public void ProcessTemplateInitials(string initials, string quantity, IConfiguration configuration, string outputFilePath)
         {
             try
             {
@@ -93,8 +93,8 @@ namespace Api.PrinterProd.Services.Template
                 templateContent = templateContent.Replace("#DD/MM/YYYY#", DateTime.Now.ToString("dd/MM/yyyy"));
 
                 // Écriture dans le fichier généré
-                File.WriteAllText("out_file.txt", templateContent);
-                Log.Information("Fichier out_file.txt généré pour initiales: {OutputContent}", templateContent);
+                File.WriteAllText(outputFilePath, templateContent);
+                Log.Information("Fichier {OutputFilePath} généré pour initiales: {OutputContent}", outputFilePath, templateContent);
 
                 Log.Information("Fichier d'impression des initiales généré avec succès.");
             }
@@ -106,7 +106,7 @@ namespace Api.PrinterProd.Services.Template
         }
 
 
-        public void ProcessTemplatePartialPrint(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string userUid, Article article, int printQuantity, IConfiguration configuration)
+        public void ProcessTemplatePartialPrint(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string userUid, Article article, int printQuantity, IConfiguration configuration, string outputFilePath)
         {
             string pathToTemplateDir = configuration["Template:Path"];
             string templateFilePath = pathToTemplateDir + usageCorrespondanceProduit.TemplateFile;
@@ -149,8 +149,8 @@ namespace Api.PrinterProd.Services.Template
             templateContent = templateContent.Replace("#OffsetXLpt2#", configuration["LPT2:OffsetX"]);
             templateContent = templateContent.Replace("#OffsetYLpt2#", configuration["LPT2:OffsetY"]);
 
-            File.WriteAllText("out_file.txt", templateContent);
-            Log.Information("Fichier out_file.txt généré pour impression partielle: {OutputContent}", templateContent);
+            File.WriteAllText(outputFilePath, templateContent);
+            Log.Information("Fichier {OutputFilePath} généré pour impression partielle: {OutputContent}", outputFilePath, templateContent);
         }
 
 
@@ -162,7 +162,7 @@ namespace Api.PrinterProd.Services.Template
         /// <param name="usage"></param>
         /// <param name="version"></param>
         /// <param name="configuration"></param>
-        public void ProcessTemplateReprint(Label etiquette, ManufacturingOrder ordre, LabelTemplate? usage, FirmwareVersion? version, Article article, IConfiguration configuration)
+        public void ProcessTemplateReprint(Label etiquette, ManufacturingOrder ordre, LabelTemplate? usage, FirmwareVersion? version, Article article, IConfiguration configuration, string outputFilePath)
         {
             string pathToTemplateDir = configuration["Template:Path"];
             string templateFilePath = pathToTemplateDir + usage.TemplateFile;
@@ -199,11 +199,11 @@ namespace Api.PrinterProd.Services.Template
             templateContent = templateContent.Replace("#OffsetYLpt2#", configuration["LPT2:OffsetY"]);
             templateContent = templateContent.Replace("#ReferenceTier#", article.SupplierReference);
 
-            File.WriteAllText("out_file.txt", templateContent);
-            Log.Information("Fichier out_file.txt généré pour réimpression: {OutputContent}", templateContent);
+            File.WriteAllText(outputFilePath, templateContent);
+            Log.Information("Fichier {OutputFilePath} généré pour réimpression: {OutputContent}", outputFilePath, templateContent);
         }
 
-        public void ProcessTemplateUnitSerial(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, int serialNumber, Article article, KitTraceability kitTracea, IConfiguration configuration)
+        public void ProcessTemplateUnitSerial(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, int serialNumber, Article article, KitTraceability kitTracea, IConfiguration configuration, string outputFilePath)
         {
             string pathToTemplateDir = configuration["Template:Path"];
             string templateFilePath = pathToTemplateDir + usageCorrespondanceProduit.TemplateFile;
@@ -225,33 +225,28 @@ namespace Api.PrinterProd.Services.Template
              ? article.ArticleUid.Substring(article.ArticleUid.Length - 6)
                : article.ArticleUid.PadLeft(6);
 
-            string uidProduit = string.Empty;
-            if (ordreFabrication.ProductUid == "71PT00634A")
-            {
-                uidProduit = "61PT00634A";
-            }
-            else if (ordreFabrication.ProductUid == "71PT00641")
-            {
-                uidProduit = "61PT00641";
-            }
-            else if (ordreFabrication.ProductUid == "71PT00640A" || ordreFabrication.ProductUid == "71PT00643")
-            {
-                uidProduit = "61PT00640A";
-            }
-            else
-            {
-                uidProduit = string.Empty;
-            }
+            string uidProduit = GetUnitSerialProductUid(ordreFabrication.ProductUid);
             templateContent = templateContent.Replace("#UidProduit#", uidProduit);
             templateContent = templateContent.Replace("#UidProduitCut#", uidProduitCut);
 
             templateContent = templateContent.Replace("#DD/MM/YYYY#", dateTime.ToString("dd/MM/yyyy"));
 
-            File.WriteAllText("out_file.txt", templateContent);
-            Log.Information("Fichier out_file.txt généré pour impression unitaire: {OutputContent}", templateContent);
+            File.WriteAllText(outputFilePath, templateContent);
+            Log.Information("Fichier {OutputFilePath} généré pour impression unitaire: {OutputContent}", outputFilePath, templateContent);
 
             Log.Information("Template généré pour impression unitaire - Serial Number: {serialNumber}, Product: {productUid}",
                 serialNumber, ordreFabrication.ProductUid);
+        }
+
+        private static string GetUnitSerialProductUid(string productUid)
+        {
+            return productUid switch
+            {
+                "71PT00634A" => "61PT00634A",
+                "71PT00641" => "61PT00641",
+                "71PT00640A" or "71PT00643" => "61PT00640A", 
+                _ => string.Empty
+            };
         }
     }
 }

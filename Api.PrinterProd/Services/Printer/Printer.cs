@@ -13,42 +13,41 @@ namespace Api.PrinterProd.Services.Printer
             _configuration = configuration;
         }
 
-        public void PrintFtp()
+        public void PrintFtp(string filePath)
         {
             string ftpServer = "192.168.1.200";
             string ftpUser = "ftpprint";
             string ftpPassword = "print";
-            string fileName = "out_file_art_borne.txt";
 
             Log.Debug("🚀 Début du processus FTP...\n");
 
-            if (!File.Exists(fileName))
+            if (!File.Exists(filePath))
             {
-                Log.Debug($"❌ ERREUR : Le fichier '{fileName}' n'existe pas !");
+                Log.Debug($"❌ ERREUR : Le fichier '{filePath}' n'existe pas !");
                 return;
             }
 
             try
             {
                 // 🔹 Lecture du contenu du fichier
-                string fileContent = File.ReadAllText(fileName);
+                string fileContent = File.ReadAllText(filePath);
 
                 // 🔹 Log du contenu (tronqué si trop long pour éviter de polluer les logs)
                 if (fileContent.Length > 2000)
                 {
-                    Log.Debug($"📄 Contenu du fichier '{fileName}' (tronqué à 2000 caractères) :\n{fileContent.Substring(0, 2000)}\n...");
+                    Log.Debug($"📄 Contenu du fichier '{filePath}' (tronqué à 2000 caractères) :\n{fileContent.Substring(0, 2000)}\n...");
                 }
                 else
                 {
-                    Log.Debug($"📄 Contenu complet du fichier '{fileName}' :\n{fileContent}");
+                    Log.Debug($"📄 Contenu complet du fichier '{filePath}' :\n{fileContent}");
                 }
 
                 // 🔹 Exécution de la commande FTP
-                ExecuteFtpCommand(ftpServer, ftpUser, ftpPassword, fileName);
+                ExecuteFtpCommand(ftpServer, ftpUser, ftpPassword, filePath);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"Erreur lors de la lecture du fichier '{fileName}'");
+                Log.Error(ex, $"Erreur lors de la lecture du fichier '{filePath}'");
             }
         }
 
@@ -58,7 +57,7 @@ namespace Api.PrinterProd.Services.Printer
             string ftpUrl = $"ftp://{ftpUser}:{ftpPassword}@{ftpServer}/";
 
             // Construire la commande `curl` pour transférer le fichier via FTP
-            string command = $"curl -T {filePath} {ftpUrl}";
+            string command = $"curl -T \"{filePath}\" {ftpUrl}";
 
             Log.Information($"🚀 Envoi du fichier {filePath} vers {ftpServer}...");
 
@@ -102,7 +101,7 @@ namespace Api.PrinterProd.Services.Printer
         /// Méthode qui exécute la commande d'impression sur le fichier généré à partir du template.
         /// </summary>
         /// <param name="usage"></param>
-        public void ExecutePrinting(string usage)
+        public void ExecutePrinting(string usage, string filePath)
         {
             string printer = _configuration["Printer:Share"];
 
@@ -119,7 +118,7 @@ namespace Api.PrinterProd.Services.Printer
             string printerLinux = $"//{printer.Replace("\\\\", "").Replace("\\", "/")}";
 
             // Construction de la commande `smbclient`
-            string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put out_file.txt\"";
+            string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put \\\"{filePath}\\\"\"";
 
             Log.Information($"CommandBrady : {commandBrady}");
 
@@ -165,7 +164,7 @@ namespace Api.PrinterProd.Services.Printer
                 throw;
             }
         }
-        public bool PrintFileTest(string usage)
+        public bool PrintFileTest(string usage, string filePath)
         {
             string printer = _configuration["Printer:Share"];
 
@@ -182,7 +181,7 @@ namespace Api.PrinterProd.Services.Printer
             string printerLinux = $"//{printer.Replace("\\\\", "").Replace("\\", "/")}";
 
             // Construction de la commande `smbclient`
-            string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put out_file.txt\"";
+            string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put \\\"{filePath}\\\"\"";
 
             Log.Information($"CommandBrady : {commandBrady}");
 
@@ -234,42 +233,40 @@ namespace Api.PrinterProd.Services.Printer
         /// Méthode pour imprimer le fichier out_file.txt via FTP pour l'impression par numéro de série.
         /// Utilisée en production depuis le conteneur Docker.
         /// </summary>
-        public bool PrintBySerialNumberFtp()
+        public bool PrintBySerialNumberFtp(string filePath)
         {
             string ftpServer = "192.168.1.201";
             string ftpUser = "ftpprint";
             string ftpPassword = "print";
-            string fileName = "out_file.txt";
-
             Log.Information("🚀 Début du processus d'impression FTP pour PrintBySerialNumber...");
 
-            if (!File.Exists(fileName))
+            if (!File.Exists(filePath))
             {
-                Log.Error($"❌ ERREUR : Le fichier '{fileName}' n'existe pas !");
+                Log.Error($"❌ ERREUR : Le fichier '{filePath}' n'existe pas !");
                 return false;
             }
 
             try
             {
                 // 🔹 Lecture du contenu du fichier pour logs
-                string fileContent = File.ReadAllText(fileName);
+                string fileContent = File.ReadAllText(filePath);
 
                 // 🔹 Log du contenu (tronqué si trop long)
                 if (fileContent.Length > 2000)
                 {
-                    Log.Debug($"📄 Contenu du fichier '{fileName}' (tronqué à 2000 caractères) :\n{fileContent.Substring(0, 2000)}\n...");
+                    Log.Debug($"📄 Contenu du fichier '{filePath}' (tronqué à 2000 caractères) :\n{fileContent.Substring(0, 2000)}\n...");
                 }
                 else
                 {
-                    Log.Debug($"📄 Contenu complet du fichier '{fileName}' :\n{fileContent}");
+                    Log.Debug($"📄 Contenu complet du fichier '{filePath}' :\n{fileContent}");
                 }
 
                 // 🔹 Exécution de la commande FTP
-                return ExecuteFtpCommandForSerial(ftpServer, ftpUser, ftpPassword, fileName);
+                return ExecuteFtpCommandForSerial(ftpServer, ftpUser, ftpPassword, filePath);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"Erreur lors de la lecture du fichier '{fileName}'");
+                Log.Error(ex, $"Erreur lors de la lecture du fichier '{filePath}'");
                 return false;
             }
         }
@@ -280,7 +277,7 @@ namespace Api.PrinterProd.Services.Printer
         private bool ExecuteFtpCommandForSerial(string ftpServer, string ftpUser, string ftpPassword, string filePath)
         {
             string ftpUrl = $"ftp://{ftpUser}:{ftpPassword}@{ftpServer}/";
-            string command = $"curl -v -T {filePath} {ftpUrl}";
+            string command = $"curl -v -T \"{filePath}\" {ftpUrl}";
 
             Log.Information($"🚀 Envoi du fichier {filePath} vers {ftpServer} via FTP...");
             Log.Debug($"Commande curl : {command}");
