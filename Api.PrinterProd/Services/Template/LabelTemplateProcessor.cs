@@ -244,7 +244,8 @@ namespace Api.PrinterProd.Services.Template
             {
                 "71PT00634A" => "61PT00634A",
                 "71PT00641" => "61PT00641",
-                "71PT00640A" or "71PT00643" => "61PT00640A", 
+                "71PT00640A" => "61PT00640A",
+                "71PT00643A" => "61PT00643A",
                 _ => string.Empty
             };
         }
