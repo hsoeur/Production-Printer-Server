@@ -36,6 +36,6 @@ namespace Api.PrinterProd.Services.Template
         void ProcessTemplatePartialPrint(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, string userUid, Article article, int printQuantity, IConfiguration configuration, string outputFilePath);
         void ProcessTemplateArtBorne(Article article, string quantity, IConfiguration configuration, string outputFilePath);
         void ProcessTemplateInitials(string initials, string quantity, IConfiguration configuration, string outputFilePath);
-        void ProcessTemplateUnitSerial(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, int serialNumber, Article article, KitTraceability kitTracea, IConfiguration configuration, string outputFilePath);
+        void ProcessTemplateUnitSerial(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, int serialNumber, Article article, KitTraceability? kitTracea, IConfiguration configuration, string outputFilePath);
     }
 }

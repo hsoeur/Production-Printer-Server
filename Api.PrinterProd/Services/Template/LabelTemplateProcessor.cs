@@ -203,7 +203,7 @@ namespace Api.PrinterProd.Services.Template
             Log.Information("Fichier {OutputFilePath} généré pour réimpression: {OutputContent}", outputFilePath, templateContent);
         }
 
-        public void ProcessTemplateUnitSerial(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, int serialNumber, Article article, KitTraceability kitTracea, IConfiguration configuration, string outputFilePath)
+        public void ProcessTemplateUnitSerial(ManufacturingOrder ordreFabrication, FirmwareVersion versionArticle, LabelTemplate usageCorrespondanceProduit, DateTimeOffset date, int serialNumber, Article article, KitTraceability? kitTracea, IConfiguration configuration, string outputFilePath)
         {
             string pathToTemplateDir = configuration["Template:Path"];
             string templateFilePath = pathToTemplateDir + usageCorrespondanceProduit.TemplateFile;
@@ -216,7 +216,7 @@ namespace Api.PrinterProd.Services.Template
             //templateContent = templateContent.Replace("#ReferenceTier#", article.SupplierReference.ToString());
             //templateContent = templateContent.Replace("#DesignationArticle#", article.Designation.ToString());
             templateContent = templateContent.Replace("#Version#", versionArticle.Version.ToString());
-            templateContent = templateContent.Replace("#Mac#", kitTracea.ScanFrame.ToString());
+            templateContent = templateContent.Replace("#Mac#", kitTracea?.ScanFrame?.ToString() ?? string.Empty);
             //templateContent = templateContent.Replace("#UidProduit#",kitTracea.Product.ToString());
             templateContent = templateContent.Replace("#Quantite#", ordreFabrication.Quantity.ToString("0"));
 

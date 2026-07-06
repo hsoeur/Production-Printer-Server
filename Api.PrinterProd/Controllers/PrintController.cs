@@ -650,12 +650,12 @@ namespace Api.PrinterProd.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> PrintBySerialNumber([FromQuery] int manufacturingOrderUid, [FromQuery] string productUid, [FromQuery] string uidUsage, [FromQuery] int serialNumber)
         {
-            if (manufacturingOrderUid <= 0 || string.IsNullOrWhiteSpace(uidUsage) || serialNumber < 0)
+            if (manufacturingOrderUid <= 0 || string.IsNullOrWhiteSpace(productUid) || string.IsNullOrWhiteSpace(uidUsage) || serialNumber < 0)
             {
                 return BadRequest(new ProblemDetails
                 {
                     Title = "Paramètre(s) invalide(s)",
-                    Detail = "Les paramètres 'manufacturingOrderUid', 'uidUsage' et 'serialNumber' sont requis et doivent être valides."
+                    Detail = "Les paramètres 'manufacturingOrderUid', 'productUid', 'uidUsage' et 'serialNumber' sont requis et doivent être valides."
                 });
             }
 
@@ -675,6 +675,18 @@ namespace Api.PrinterProd.Controllers
                     {
                         Title = "Ordre de fabrication introuvable",
                         Detail = $"Aucun ordre de fabrication trouvé pour l'identifiant {manufacturingOrderUid}."
+                    });
+                }
+
+                if (!string.Equals(ordreFabrication.ProductUid, productUid, StringComparison.OrdinalIgnoreCase))
+                {
+                    Log.Information("ProductUid mismatch for manufacturingOrderUid: {manufacturingOrderUid}. Expected {expectedProductUid}, received {receivedProductUid}",
+                        manufacturingOrderUid, ordreFabrication.ProductUid, productUid);
+
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "Produit incohérent",
+                        Detail = $"Le produit demandé ({productUid}) ne correspond pas au produit de l'ordre de fabrication ({ordreFabrication.ProductUid})."
                     });
                 }
 
@@ -723,15 +735,23 @@ namespace Api.PrinterProd.Controllers
                     });
                 }
 
-                var kitTracea = await _apiData.GetKitTraceaByProductAndSerialNumber(productUid, serialNumber);
-                if (kitTracea == null)
+                var kitTracea = await _apiData.GetKitTraceaByProductAndSerialNumber(ordreFabrication.ProductUid, serialNumber);
+                bool isKitTraceaOptional = IsKitTraceaOptionalForProduct(ordreFabrication.ProductUid);
+
+                if (kitTracea == null && !isKitTraceaOptional)
                 {
-                    Log.Information("KitTraceability not found for productUid: {productUid} and serialNumber: {serialNumber}", productUid, serialNumber);
+                    Log.Information("KitTraceability required but not found for productUid: {productUid} and serialNumber: {serialNumber}", ordreFabrication.ProductUid, serialNumber);
                     return NotFound(new ProblemDetails
                     {
                         Title = "Traçabilité kit introuvable",
-                        Detail = $"Aucune traçabilité kit trouvée pour le produit {productUid} et le numéro de série {serialNumber}."
+                        Detail = $"Le produit {ordreFabrication.ProductUid} exige une traçabilité kit pour le numéro de série {serialNumber}."
                     });
+                }
+
+                if (kitTracea == null)
+                {
+                    Log.Information("KitTraceability not found for productUid: {productUid} and serialNumber: {serialNumber}, but it is optional for this product",
+                        ordreFabrication.ProductUid, serialNumber);
                 }
 
                 _labelTemplateProcessor.ProcessTemplateUnitSerial(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, serialNumber, article, kitTracea, _configuration, outputFile.Path);
@@ -760,6 +780,14 @@ namespace Api.PrinterProd.Controllers
                     Detail = ex.Message
                 });
             }
+        }
+
+        private bool IsKitTraceaOptionalForProduct(string productUid)
+        {
+            return _configuration
+                .GetSection("PrintBySerialNumber:ProductsWithOptionalKitTracea")
+                .GetChildren()
+                .Any(product => string.Equals(product.Value, productUid, StringComparison.OrdinalIgnoreCase));
         }
 
     }
