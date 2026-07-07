@@ -737,7 +737,7 @@ namespace Api.PrinterProd.Controllers
                     });
                 }
 
-                var kitTracea = await _apiData.GetKitTraceaByProductAndSerialNumber(ordreFabrication.ProductUid, serialNumber);
+                var kitTracea = await _apiData.GetKitTraceaByProductAndSerialNumber(productUid, serialNumber);
                 bool isKitTraceaOptional = IsKitTraceaOptionalForProduct(ordreFabrication.ProductUid);
 
                 if (kitTracea == null && !isKitTraceaOptional)
@@ -746,7 +746,7 @@ namespace Api.PrinterProd.Controllers
                     return NotFound(new ProblemDetails
                     {
                         Title = "Traçabilité kit introuvable",
-                        Detail = $"Le produit {ordreFabrication.ProductUid} exige une traçabilité kit pour le numéro de série {serialNumber}."
+                        Detail = $"Le produit {ordreFabrication.ProductUid} exige une traçabilité kit pour le produit {productUid} et le numéro de série {serialNumber}."
                     });
                 }
 
