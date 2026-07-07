@@ -678,6 +678,7 @@ namespace Api.PrinterProd.Controllers
                     });
                 }
 
+                /*
                 if (!string.Equals(ordreFabrication.ProductUid, productUid, StringComparison.OrdinalIgnoreCase))
                 {
                     Log.Information("ProductUid mismatch for manufacturingOrderUid: {manufacturingOrderUid}. Expected {expectedProductUid}, received {receivedProductUid}",
@@ -689,6 +690,7 @@ namespace Api.PrinterProd.Controllers
                         Detail = $"Le produit demandé ({productUid}) ne correspond pas au produit de l'ordre de fabrication ({ordreFabrication.ProductUid})."
                     });
                 }
+                */
 
                 // Validation du numéro de série
                 if (serialNumber != 0 && serialNumber < 100001)
