@@ -1,4 +1,5 @@
-﻿using DataLib;
+using Api.PrinterProd.Configuration;
+using DataLib;
 using Serilog;
 using System;
 using System.Globalization;
@@ -48,7 +49,7 @@ namespace Api.PrinterProd.Services.Template
             templateContent = templateContent.Replace("#SerialNumberMontage#", lastSerialNumberMontage.ToString());
             templateContent = templateContent.Replace("#SerialNumberEmballage#", lastSerialNumberEmballage.ToString());
             templateContent = templateContent.Replace("#ReferenceTier#", article.SupplierReference);
-            templateContent = templateContent.Replace("#UidProduitCut#", ordreFabrication.ProductUid.Substring(5).Replace("-", "").PadRight(6));
+            templateContent = templateContent.Replace("#UidProduitCut#", GetProductUidCut(ordreFabrication.ProductUid, configuration));
             templateContent = templateContent.Replace("#UidOF#", ordreFabrication.ManufacturingOrderUid.ToString());
             templateContent = templateContent.Replace("#UidOperateur#", uidOperateur);
             templateContent = templateContent.Replace("#Version#", version.Version);
@@ -123,7 +124,7 @@ namespace Api.PrinterProd.Services.Template
             templateContent = templateContent.Replace("#SerialNumberEmballage#", lastSerialNumberEmballage.ToString());
 
             templateContent = templateContent.Replace("#ReferenceTier#", article.SupplierReference);
-            templateContent = templateContent.Replace("#UidProduitCut#", ordreFabrication.ProductUid.Substring(5).Replace("-", "").PadRight(6));
+            templateContent = templateContent.Replace("#UidProduitCut#", GetProductUidCut(ordreFabrication.ProductUid, configuration));
             templateContent = templateContent.Replace("#UidOF#", ordreFabrication.ManufacturingOrderUid.ToString());
             templateContent = templateContent.Replace("#UidOperateur#", userUid);
             templateContent = templateContent.Replace("#Version#", versionArticle.Version);
@@ -176,7 +177,7 @@ namespace Api.PrinterProd.Services.Template
             templateContent = templateContent.Replace("#SerialNumberEmballage#", etiquette.CurrentSerialNumber.ToString());
             templateContent = templateContent.Replace("#UidOF#", ordre.ManufacturingOrderUid.ToString());
             templateContent = templateContent.Replace("#UidOperateur#", etiquette.UserUid);
-            templateContent = templateContent.Replace("#UidProduitCut#", ordre.ProductUid.Substring(5).Replace("-", "").PadRight(6));
+            templateContent = templateContent.Replace("#UidProduitCut#", GetProductUidCut(ordre.ProductUid, configuration));
             templateContent = templateContent.Replace("#Version#", version.Version);
             templateContent = templateContent.Replace("#UidProduit#", ordre.ProductUid);
             templateContent = templateContent.Replace("#Quantite#", "1");
@@ -220,12 +221,12 @@ namespace Api.PrinterProd.Services.Template
             //templateContent = templateContent.Replace("#UidProduit#",kitTracea.Product.ToString());
             templateContent = templateContent.Replace("#Quantite#", ordreFabrication.Quantity.ToString("0"));
 
-            // Extraction des 6 derniers caractères de article.ArticleUid
-            string uidProduitCut = article.ArticleUid.Length >= 6
-             ? article.ArticleUid.Substring(article.ArticleUid.Length - 6)
-               : article.ArticleUid.PadLeft(6);
+            int productUidCutLength = configuration.GetRequiredInt("Printing:ProductUidCutLength");
+            string uidProduitCut = article.ArticleUid.Length >= productUidCutLength
+                ? article.ArticleUid.Substring(article.ArticleUid.Length - productUidCutLength)
+                : article.ArticleUid.PadLeft(productUidCutLength);
 
-            string uidProduit = GetUnitSerialProductUid(ordreFabrication.ProductUid);
+            string uidProduit = GetUnitSerialProductUid(ordreFabrication.ProductUid, configuration);
             templateContent = templateContent.Replace("#UidProduit#", uidProduit);
             templateContent = templateContent.Replace("#UidProduitCut#", uidProduitCut);
 
@@ -238,16 +239,17 @@ namespace Api.PrinterProd.Services.Template
                 serialNumber, ordreFabrication.ProductUid);
         }
 
-        private static string GetUnitSerialProductUid(string productUid)
+        private static string GetProductUidCut(string productUid, IConfiguration configuration)
         {
-            return productUid switch
-            {
-                "71PT00634A" => "61PT00634A",
-                "71PT00641" => "61PT00641",
-                "71PT00640A" => "61PT00640A",
-                "71PT00643A" => "61PT00643A",
-                _ => string.Empty
-            };
+            int startIndex = configuration.GetRequiredInt("Printing:ProductUidCutStartIndex");
+            int cutLength = configuration.GetRequiredInt("Printing:ProductUidCutLength");
+            string value = productUid.Length > startIndex ? productUid.Substring(startIndex).Replace("-", string.Empty) : productUid.Replace("-", string.Empty);
+            return value.PadRight(cutLength);
+        }
+
+        private static string GetUnitSerialProductUid(string productUid, IConfiguration configuration)
+        {
+            return configuration[$"PrintBySerialNumber:ProductUidMappings:{productUid}"] ?? string.Empty;
         }
     }
 }

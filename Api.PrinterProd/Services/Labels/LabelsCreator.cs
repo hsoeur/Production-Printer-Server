@@ -1,4 +1,5 @@
-﻿using Api.PrinterProd.Models;
+using Api.PrinterProd.Configuration;
+using Api.PrinterProd.Models;
 using Api.PrinterProd.Services.api_data;
 using CmdGenerator;
 using DataLib;
@@ -44,6 +45,13 @@ namespace Api.PrinterProd.Services.Labels
 
 
        
+        private string BuildAuthentiUid(string productUid, int serialNumber, string usagePrefix)
+        {
+            int prefixLength = _configuration.GetRequiredInt("Printing:AuthentiUidProductPrefixLength");
+            string productPrefix = productUid.Length > prefixLength ? productUid.Substring(0, prefixLength) : productUid;
+            return productPrefix + serialNumber + usagePrefix;
+        }
+
         /// <summary>
         /// Conversion de la quantité de l'OF en entier.
         /// </summary>
@@ -63,14 +71,14 @@ namespace Api.PrinterProd.Services.Labels
         {
             string printer = _configuration["Printer:Share"];
 
-            if (usageCorrespondanceProduit.LabelTypeUid != "Etiquette Lot")
+            if (usageCorrespondanceProduit.LabelTypeUid != _configuration.GetRequiredString("Application:DefaultLotUsage"))
             {
                 printer = _configuration["Printer:OtherThanLot"];
             }
 
 
-            string user = "AMPHI-PROD\\adminprod"; // Utilisateur avec domaine
-            string password = "Paris2024JO*"; // Mot de passe
+            string user = _configuration.GetRequiredString("Printer:Samba:User");
+            string password = _configuration.GetRequiredString("Printer:Samba:Password");
 
             // Conversion du chemin d'imprimante Windows pour Linux (Samba)
             string printerLinux = $"//{printer.Replace("\\\\", "").Replace("\\", "/")}";
@@ -78,7 +86,7 @@ namespace Api.PrinterProd.Services.Labels
             // Construction de la commande `smbclient`
             string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put \\\"{outputFilePath}\\\"\"";
 
-            Log.Information($"CommandBrady : {commandBrady}");
+            Log.Information("CommandBrady : smbclient {PrinterLinux} -U {User} -c put {FilePath}", printerLinux, user, outputFilePath);
 
             try
             {
@@ -186,7 +194,7 @@ namespace Api.PrinterProd.Services.Labels
                         currentSnString = 0;
                         LabelDto etiWithoutSN = new LabelDto
                         {
-                            AuthentiUid = ordreFabrication.ProductUid.Substring(0,9) + currentSnString + persoUsage,
+                            AuthentiUid = BuildAuthentiUid(ordreFabrication.ProductUid, currentSnString, persoUsage),
                             UserUid = uidOperateur,
                             ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
                             CreationDate = date,
@@ -204,7 +212,7 @@ namespace Api.PrinterProd.Services.Labels
                     {
                         LabelDto etiDto = new LabelDto
                         {
-                            AuthentiUid = ordreFabrication.ProductUid.Substring(0,9) + currentSnString + persoUsage,
+                            AuthentiUid = BuildAuthentiUid(ordreFabrication.ProductUid, currentSnString, persoUsage),
                             UserUid = uidOperateur,
                             ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
                             CreationDate = date,
@@ -261,7 +269,7 @@ namespace Api.PrinterProd.Services.Labels
                     currentSnString = 0;
                     LabelDto etiWithoutSN = new LabelDto
                     {
-                        AuthentiUid = ordreFabrication.ProductUid.Substring(0,9) + currentSnString + persoUsage,
+                        AuthentiUid = BuildAuthentiUid(ordreFabrication.ProductUid, currentSnString, persoUsage),
                         UserUid = uidOperateur,
                         ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
                         CreationDate = date,
@@ -279,7 +287,7 @@ namespace Api.PrinterProd.Services.Labels
                 {
                     LabelDto etiDto = new LabelDto
                     {
-                        AuthentiUid = ordreFabrication.ProductUid.Substring(0,9) + currentSnString + persoUsage,
+                        AuthentiUid = BuildAuthentiUid(ordreFabrication.ProductUid, currentSnString, persoUsage),
                         UserUid = uidOperateur,
                         ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
                         CreationDate = date,
@@ -331,7 +339,7 @@ namespace Api.PrinterProd.Services.Labels
 
                     LabelDto etiDto = new LabelDto
                     {
-                        AuthentiUid = ordreFabrication.ProductUid.Substring(0,9) + currentSnString + persoUsage,
+                        AuthentiUid = BuildAuthentiUid(ordreFabrication.ProductUid, currentSnString, persoUsage),
                         UserUid = userUid,
                         ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
                         CreationDate = date,

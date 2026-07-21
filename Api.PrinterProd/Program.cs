@@ -1,3 +1,4 @@
+using Api.PrinterProd.Configuration;
 using Api.PrinterProd.Services.api_data;
 using Api.PrinterProd.Services.Labels;
 using Api.PrinterProd.Services.Printer;
@@ -13,9 +14,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var logDirectory = Path.Combine(AppContext.BaseDirectory, "logs");
-Directory.CreateDirectory(logDirectory); // S'assure que le répertoire existe
+Directory.CreateDirectory(logDirectory); // S'assure que le rÃ©pertoire existe
 
-var logFileName = $"Log_Api_Etiq_{DateTime.Now:yyyy-MM-dd}.log";
+var logFilePrefix = builder.Configuration.GetRequiredString("Application:LogFilePrefix");
+var retainedFileCountLimit = builder.Configuration.GetRequiredInt("Application:LogRetainedFileCount");
+var logFileName = $"{logFilePrefix}_{DateTime.Now:yyyy-MM-dd}.log";
 var logFilePath = Path.Combine(logDirectory, logFileName);
 
 Log.Logger = new LoggerConfiguration()
@@ -23,7 +26,7 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File(
         path: logFilePath,
         rollingInterval: RollingInterval.Infinite,
-        retainedFileCountLimit: 30, // optionnel
+        retainedFileCountLimit: retainedFileCountLimit,
         shared: true
     )
     .CreateLogger();

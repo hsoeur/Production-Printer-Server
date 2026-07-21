@@ -1,4 +1,5 @@
-﻿using CmdGenerator;
+using Api.PrinterProd.Configuration;
+using CmdGenerator;
 using Serilog;
 using System.Diagnostics;
 
@@ -15,9 +16,9 @@ namespace Api.PrinterProd.Services.Printer
 
         public void PrintFtp(string filePath)
         {
-            string ftpServer = "192.168.1.200";
-            string ftpUser = "ftpprint";
-            string ftpPassword = "print";
+            string ftpServer = _configuration.GetRequiredString("Printer:Ftp:ArtBorne:Server");
+            string ftpUser = _configuration.GetRequiredString("Printer:Ftp:ArtBorne:User");
+            string ftpPassword = _configuration.GetRequiredString("Printer:Ftp:ArtBorne:Password");
 
             Log.Debug("🚀 Début du processus FTP...\n");
 
@@ -33,9 +34,10 @@ namespace Api.PrinterProd.Services.Printer
                 string fileContent = File.ReadAllText(filePath);
 
                 // 🔹 Log du contenu (tronqué si trop long pour éviter de polluer les logs)
-                if (fileContent.Length > 2000)
+                int maxLogContentLength = _configuration.GetRequiredInt("Printing:LogContentMaxLength");
+                if (fileContent.Length > maxLogContentLength)
                 {
-                    Log.Debug($"📄 Contenu du fichier '{filePath}' (tronqué à 2000 caractères) :\n{fileContent.Substring(0, 2000)}\n...");
+                    Log.Debug($"📄 Contenu du fichier '{filePath}' (tronqué à {maxLogContentLength} caractères) :\n{fileContent.Substring(0, maxLogContentLength)}\n...");
                 }
                 else
                 {
@@ -105,14 +107,14 @@ namespace Api.PrinterProd.Services.Printer
         {
             string printer = _configuration["Printer:Share"];
 
-            if (usage != "Etiquette Lot")
+            if (usage != _configuration.GetRequiredString("Application:DefaultLotUsage"))
             {
                 printer = _configuration["Printer:OtherThanLot"];
             }
 
 
-            string user = "AMPHI-PROD\\adminprod"; // Utilisateur avec domaine
-            string password = "Paris2024JO*"; // Mot de passe
+            string user = _configuration.GetRequiredString("Printer:Samba:User");
+            string password = _configuration.GetRequiredString("Printer:Samba:Password");
 
             // Conversion du chemin d'imprimante Windows pour Linux (Samba)
             string printerLinux = $"//{printer.Replace("\\\\", "").Replace("\\", "/")}";
@@ -120,7 +122,7 @@ namespace Api.PrinterProd.Services.Printer
             // Construction de la commande `smbclient`
             string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put \\\"{filePath}\\\"\"";
 
-            Log.Information($"CommandBrady : {commandBrady}");
+            Log.Information("CommandBrady : smbclient {PrinterLinux} -U {User} -c put {FilePath}", printerLinux, user, filePath);
 
             try
             {
@@ -168,14 +170,14 @@ namespace Api.PrinterProd.Services.Printer
         {
             string printer = _configuration["Printer:Share"];
 
-            if (usage != "Etiquette Lot")
+            if (usage != _configuration.GetRequiredString("Application:DefaultLotUsage"))
             {
                 printer = _configuration["Printer:OtherThanLot"];
             }
 
 
-            string user = "AMPHI-PROD\\adminprod"; // Utilisateur avec domaine
-            string password = "Paris2024JO*"; // Mot de passe
+            string user = _configuration.GetRequiredString("Printer:Samba:User");
+            string password = _configuration.GetRequiredString("Printer:Samba:Password");
 
             // Conversion du chemin d'imprimante Windows pour Linux (Samba)
             string printerLinux = $"//{printer.Replace("\\\\", "").Replace("\\", "/")}";
@@ -183,7 +185,7 @@ namespace Api.PrinterProd.Services.Printer
             // Construction de la commande `smbclient`
             string commandBrady = $"echo \"{password}\" | smbclient {printerLinux} -U \"{user}\" -c \"put \\\"{filePath}\\\"\"";
 
-            Log.Information($"CommandBrady : {commandBrady}");
+            Log.Information("CommandBrady : smbclient {PrinterLinux} -U {User} -c put {FilePath}", printerLinux, user, filePath);
 
             try
             {
@@ -235,9 +237,9 @@ namespace Api.PrinterProd.Services.Printer
         /// </summary>
         public bool PrintBySerialNumberFtp(string filePath)
         {
-            string ftpServer = "192.168.1.201";
-            string ftpUser = "ftpprint";
-            string ftpPassword = "print";
+            string ftpServer = _configuration.GetRequiredString("Printer:Ftp:SerialNumber:Server");
+            string ftpUser = _configuration.GetRequiredString("Printer:Ftp:SerialNumber:User");
+            string ftpPassword = _configuration.GetRequiredString("Printer:Ftp:SerialNumber:Password");
             Log.Information("🚀 Début du processus d'impression FTP pour PrintBySerialNumber...");
 
             if (!File.Exists(filePath))
@@ -252,9 +254,10 @@ namespace Api.PrinterProd.Services.Printer
                 string fileContent = File.ReadAllText(filePath);
 
                 // 🔹 Log du contenu (tronqué si trop long)
-                if (fileContent.Length > 2000)
+                int maxLogContentLength = _configuration.GetRequiredInt("Printing:LogContentMaxLength");
+                if (fileContent.Length > maxLogContentLength)
                 {
-                    Log.Debug($"📄 Contenu du fichier '{filePath}' (tronqué à 2000 caractères) :\n{fileContent.Substring(0, 2000)}\n...");
+                    Log.Debug($"📄 Contenu du fichier '{filePath}' (tronqué à {maxLogContentLength} caractères) :\n{fileContent.Substring(0, maxLogContentLength)}\n...");
                 }
                 else
                 {

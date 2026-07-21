@@ -1,4 +1,5 @@
-﻿using Api.PrinterProd.Services.api_data;
+using Api.PrinterProd.Configuration;
+using Api.PrinterProd.Services.api_data;
 using Api.PrinterProd.Services.Labels;
 using Api.PrinterProd.Services.Printer;
 using Api.PrinterProd.Services.Template;
@@ -51,7 +52,7 @@ namespace Api.PrinterProd.Controllers
         {
             try
             {
-                _printer.PrintFileTest("Etiquette Lot", "out_file.txt");
+                _printer.PrintFileTest(DefaultLotUsage, _configuration.GetRequiredString("Application:TestPrintFilePath"));
                 Log.Information("Impression Terminée avec Succès");
                 return Ok("Impression Successful.");
             }
@@ -107,13 +108,13 @@ namespace Api.PrinterProd.Controllers
                     });
                 }
 
-                if (ordreFabrication.FirstSerialNumber < 100001 && ordreFabrication.FirstSerialNumber != 0)
+                if (IsSerialNumberInvalid(ordreFabrication.FirstSerialNumber))
                 {
-                    Log.Information("Serial number of OF {uidOrdreFabrication} is less than100001", uidOrdreFabrication);
+                    Log.Information("Serial number of OF {uidOrdreFabrication} is less than {MinimumSerialNumber}", uidOrdreFabrication, MinimumSerialNumber);
                     return BadRequest(new ProblemDetails
                     {
                         Title = "Numéro de série invalide",
-                        Detail = "Le numéro de série de l'ordre de fabrication est inférieur à100001."
+                        Detail = $"Le numéro de série de l'ordre de fabrication est inférieur à {MinimumSerialNumber}."
                     });
                 }
 
@@ -140,7 +141,7 @@ namespace Api.PrinterProd.Controllers
                     });
                     */
 
-                    versionArticle = new FirmwareVersion() { FirmwareVersionUid = Guid.NewGuid().ToString(), ArticleUid = ordreFabrication.ProductUid, Version = "Vxx.xx" };
+                    versionArticle = new FirmwareVersion() { FirmwareVersionUid = Guid.NewGuid().ToString(), ArticleUid = ordreFabrication.ProductUid, Version = DefaultFirmwareVersion };
                 }
 
                 var article = await _apiData.GetArticleByUidArticle(ordreFabrication.ProductUid);
@@ -179,7 +180,7 @@ namespace Api.PrinterProd.Controllers
                         Detail = "L'étiquette existe déjà en base de données."
                     });
                 }
-                return Ok("SUCCESS");
+                return Ok(SuccessResponse);
             }
             catch (Exception ex)
             {
@@ -217,7 +218,7 @@ namespace Api.PrinterProd.Controllers
             {
                 using var outputFile = TemporaryPrintFile.Create();
                 DateTimeOffset date = DateTimeOffset.Now;
-                string usage = "Etiquette Lot";
+                string usage = DefaultLotUsage;
 
                 var ordreFabrication = await _apiData.GetOrdreFabricationWithUidOF(manufacturingOrderuid);
                 if (ordreFabrication == null)
@@ -230,13 +231,13 @@ namespace Api.PrinterProd.Controllers
                     });
                 }
 
-                if (ordreFabrication.FirstSerialNumber < 100001 && ordreFabrication.FirstSerialNumber != 0)
+                if (IsSerialNumberInvalid(ordreFabrication.FirstSerialNumber))
                 {
-                    Log.Information("Serial number of OF {uidOrdreFabrication} is less than100001", manufacturingOrderuid);
+                    Log.Information("Serial number of OF {uidOrdreFabrication} is less than {MinimumSerialNumber}", manufacturingOrderuid, MinimumSerialNumber);
                     return BadRequest(new ProblemDetails
                     {
                         Title = "Numéro de série invalide",
-                        Detail = "Le numéro de série de l'ordre de fabrication est inférieur à100001."
+                        Detail = $"Le numéro de série de l'ordre de fabrication est inférieur à {MinimumSerialNumber}."
                     });
                 }
 
@@ -286,7 +287,7 @@ namespace Api.PrinterProd.Controllers
                     });
                 }
 
-                return Ok("SUCCESS");
+                return Ok(SuccessResponse);
             }
             catch (Exception ex)
             {
@@ -369,7 +370,7 @@ namespace Api.PrinterProd.Controllers
                     {
                         FirmwareVersionUid = Guid.NewGuid().ToString(),
                         ArticleUid = ordre.ProductUid,
-                        Version = "Vxx.xx"
+                        Version = DefaultFirmwareVersion
                     };
                 }
 
@@ -401,7 +402,7 @@ namespace Api.PrinterProd.Controllers
                 }
 
                 Log.Information("Reprint successful for uidAuthentiEtiquette: {uidAuthentiEtiquette}", uidAuthentiEtiquette);
-                return Ok("SUCCESS");
+                return Ok(SuccessResponse);
             }
             catch (Exception ex)
             {
@@ -471,7 +472,7 @@ namespace Api.PrinterProd.Controllers
                     {
                         FirmwareVersionUid = Guid.NewGuid().ToString(),
                         ArticleUid = ordre.ProductUid,
-                        Version = "Vxx.xx"
+                        Version = DefaultFirmwareVersion
                     };
                 }
 
@@ -503,7 +504,7 @@ namespace Api.PrinterProd.Controllers
                 }
 
                 Log.Information("Reprint successful Entire lot");
-                return Ok("SUCCESS");
+                return Ok(SuccessResponse);
             }
             catch (Exception ex)
             {
@@ -557,10 +558,10 @@ namespace Api.PrinterProd.Controllers
                 $"{(string.IsNullOrEmpty(user.FirstName) ? "" : user.FirstName[0].ToString().ToUpper())} ({user.UserUid})";
 
                 _labelTemplateProcessor.ProcessTemplateInitials(initials, quantity, _configuration, outputFile.Path);
-                _printer.ExecutePrinting("Etiquette Lot", outputFile.Path);
+                _printer.ExecutePrinting(DefaultLotUsage, outputFile.Path);
 
                 Log.Information("PrintInitials completed with initials: {initials}", initials);
-                return Ok("SUCCESS");
+                return Ok(SuccessResponse);
             }
             catch (Exception ex)
             {
@@ -693,13 +694,13 @@ namespace Api.PrinterProd.Controllers
                 */
 
                 // Validation du numéro de série
-                if (serialNumber != 0 && serialNumber < 100001)
+                if (IsSerialNumberInvalid(serialNumber))
                 {
-                    Log.Information("Serial number {serialNumber} is less than 100001", serialNumber);
+                    Log.Information("Serial number {serialNumber} is less than {MinimumSerialNumber}", serialNumber, MinimumSerialNumber);
                     return BadRequest(new ProblemDetails
                     {
                         Title = "Numéro de série invalide",
-                        Detail = "Le numéro de série doit être égal à 0 ou supérieur ou égal à 100001."
+                        Detail = $"Le numéro de série doit être égal à 0 ou supérieur ou égal à {MinimumSerialNumber}."
                     });
                 }
 
@@ -722,7 +723,7 @@ namespace Api.PrinterProd.Controllers
                     {
                         FirmwareVersionUid = Guid.NewGuid().ToString(),
                         ArticleUid = ordreFabrication.ProductUid,
-                        Version = "Vxx.xx"
+                        Version = DefaultFirmwareVersion
                     };
                 }
 
@@ -771,7 +772,7 @@ namespace Api.PrinterProd.Controllers
                 }
 
                 Log.Information("PrintBySerialNumber completed successfully for serial number: {serialNumber}", serialNumber);
-                return Ok("SUCCESS");
+                return Ok(SuccessResponse);
             }
             catch (Exception ex)
             {
@@ -784,6 +785,19 @@ namespace Api.PrinterProd.Controllers
             }
         }
 
+        private string SuccessResponse => _configuration.GetRequiredString("Application:SuccessResponse");
+
+        private string DefaultLotUsage => _configuration.GetRequiredString("Application:DefaultLotUsage");
+
+        private string DefaultFirmwareVersion => _configuration.GetRequiredString("Application:DefaultFirmwareVersion");
+
+        private int MinimumSerialNumber => _configuration.GetRequiredInt("Application:MinimumSerialNumber");
+
+        private bool IsSerialNumberInvalid(int serialNumber)
+        {
+            return serialNumber != 0 && serialNumber < MinimumSerialNumber;
+        }
+
         private bool IsKitTraceaOptionalForProduct(string productUid)
         {
             return _configuration
@@ -791,6 +805,5 @@ namespace Api.PrinterProd.Controllers
                 .GetChildren()
                 .Any(product => string.Equals(product.Value, productUid, StringComparison.OrdinalIgnoreCase));
         }
-
     }
 }

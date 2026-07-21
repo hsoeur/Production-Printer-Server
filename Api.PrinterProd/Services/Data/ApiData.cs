@@ -1,4 +1,5 @@
-﻿using Api.PrinterProd.Models;
+using Api.PrinterProd.Configuration;
+using Api.PrinterProd.Models;
 using DataLib;
 using Newtonsoft.Json;
 using Serilog;
@@ -16,13 +17,27 @@ namespace Api.PrinterProd.Services.api_data
         {
             _httpClient = httpClient;
             _configuration = configuration;
-            _httpClient.BaseAddress = new Uri(_configuration["Api:Uri"]);
+            _httpClient.BaseAddress = new Uri(_configuration.GetRequiredString("Api:Uri"));
+        }
+        private string GetEndpoint(string endpointName)
+        {
+            return _configuration.GetRequiredString($"Api:Endpoints:{endpointName}");
         }
 
+        private string FormatEndpoint(string endpointName, params (string Name, string Value)[] values)
+        {
+            string endpoint = GetEndpoint(endpointName);
+            foreach (var value in values)
+            {
+                endpoint = endpoint.Replace($"{{{value.Name}}}", Uri.EscapeDataString(value.Value));
+            }
+
+            return endpoint;
+        }
         public async Task<ManufacturingOrder?> GetOrdreFabricationWithUidOF(int uidOF)
         {
             // Updated endpoint to new route provided
-            var uri = $"api/ManufacturingOrder/by-manufacturing-order-uid?manufacturingOrderUid={uidOF}";
+            var uri = FormatEndpoint("ManufacturingOrderByUid", ("manufacturingOrderUid", uidOF.ToString()));
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -37,7 +52,7 @@ namespace Api.PrinterProd.Services.api_data
 
         public async Task<FirmwareVersion?> GetVersionWithUidArticle(string uidArticle)
         {
-            var uri = $"api/FirmwareVersions/by-article-uid?articleUid={uidArticle}";
+            var uri = FormatEndpoint("FirmwareVersionByArticleUid", ("articleUid", uidArticle));
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -62,7 +77,7 @@ namespace Api.PrinterProd.Services.api_data
         public async Task<string> CreateEtiquette(LabelDto request)
         {
             // Updated endpoint to new route
-            string uri = "api/Labels/create";
+            string uri = GetEndpoint("CreateLabel");
 
             var jsonUserData = JsonConvert.SerializeObject(request);
             var content = new StringContent(jsonUserData, Encoding.UTF8, "application/json");
@@ -89,7 +104,7 @@ namespace Api.PrinterProd.Services.api_data
 
         public async Task<bool> EtiquetteAlreadyExists(string uidAuthenti)
         {
-            var uri = $"api/Labels/exists-by-authenti-uid?authentiUid={uidAuthenti}";
+            var uri = FormatEndpoint("LabelExistsByAuthentiUid", ("authentiUid", uidAuthenti));
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -104,7 +119,7 @@ namespace Api.PrinterProd.Services.api_data
         /// <returns></returns>
         public async Task<LabelTemplate?> GetUsageCorrespondanceProduitWithUidProduitUidUsage(string uidProduit, string uidUsage)
         {
-            var uri = $"api/LabelTemplate/by-article-uid-and-usage?uidProduit={uidProduit}&usage={uidUsage}";
+            var uri = FormatEndpoint("LabelTemplateByArticleAndUsage", ("uidProduit", uidProduit), ("usage", uidUsage));
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -121,7 +136,7 @@ namespace Api.PrinterProd.Services.api_data
         /// <returns></returns>
         public async Task<Label?> GetEtiquetteByUidAuthenti(string uidAuthenti)
         {
-            var uri = $"api/Labels/by-authenti-uid?authentiUid={uidAuthenti}";
+            var uri = FormatEndpoint("LabelByAuthentiUid", ("authentiUid", uidAuthenti));
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -134,7 +149,7 @@ namespace Api.PrinterProd.Services.api_data
 
         public async Task<Article> GetArticleByUidArticle(string uidProduit)
         {
-            var uri = $"api/Articles/by-article-uid?articleUid={uidProduit}";
+            var uri = FormatEndpoint("ArticleByArticleUid", ("articleUid", uidProduit));
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -147,7 +162,7 @@ namespace Api.PrinterProd.Services.api_data
 
         public async Task<List<Label>> GetCollectionLabelsByManufacturingOrderUid(int manufacturingOrderUid)
         {
-            var uri = $"api/Labels/by-manufacturing-order?manufacturingOrderUid={manufacturingOrderUid}";
+            var uri = FormatEndpoint("LabelsByManufacturingOrder", ("manufacturingOrderUid", manufacturingOrderUid.ToString()));
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -160,7 +175,7 @@ namespace Api.PrinterProd.Services.api_data
 
         public async Task<Label> GetLabelLastSerialNumberPrinted(int manufacturingOrderUid)
         {
-            var uri = $"api/Labels/last-serial-number-by-manufacturing-order?manufacturingOrderUid={manufacturingOrderUid}";
+            var uri = FormatEndpoint("LastSerialNumberByManufacturingOrder", ("manufacturingOrderUid", manufacturingOrderUid.ToString()));
 
             var response = await _httpClient.GetAsync(uri);
 
@@ -175,7 +190,7 @@ namespace Api.PrinterProd.Services.api_data
         {
             try
             {
-                var url = $"api/Users/by-user-uid?userUid={userUid}";
+                var url = FormatEndpoint("UserByUserUid", ("userUid", userUid));
                 var response = await _httpClient.GetAsync(url);
                 response.EnsureSuccessStatusCode();
 
@@ -199,7 +214,7 @@ namespace Api.PrinterProd.Services.api_data
         {
             try
             {
-                var uri = $"api/KitTraceability/by-product-serial?productUid={productUid}&serialNumber={serialNumber}";
+                var uri = FormatEndpoint("KitTraceabilityByProductSerial", ("productUid", productUid), ("serialNumber", serialNumber.ToString()));
 
                 var response = await _httpClient.GetAsync(uri);
 
