@@ -640,7 +640,7 @@ namespace Api.PrinterProd.Controllers
 
         [SwaggerOperation(
         Summary = "Création d'un travail d'impression par numéro de série",
-        Description = "Imprime l'étiquette sur l'imprimante FTP associée au nom unique du poste.",
+        Description = "Transmet l'étiquette à l'imprimante associée au nom unique du poste.",
         OperationId = "CreatePrintJob"
         )]
         [HttpPost("/api/Print/jobs")]
@@ -670,12 +670,14 @@ namespace Api.PrinterProd.Controllers
                 });
             }
 
-            IActionResult result = await PrintBySerialNumber(
+            IActionResult result = await PrintBySerialNumberCore(
                 request.ManufacturingOrderUid,
                 request.ProductUid,
                 request.UidUsage,
                 request.SerialNumber,
-                machineName);
+                machineName,
+                usePrintJobTransport: true,
+                HttpContext.RequestAborted);
 
             if (result is not OkObjectResult)
             {
@@ -705,7 +707,26 @@ namespace Api.PrinterProd.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> PrintBySerialNumber([FromQuery] int manufacturingOrderUid, [FromQuery] string productUid, [FromQuery] string uidUsage, [FromQuery] int serialNumber, [FromQuery] string? machineName = null)
+        public Task<IActionResult> PrintBySerialNumber([FromQuery] int manufacturingOrderUid, [FromQuery] string productUid, [FromQuery] string uidUsage, [FromQuery] int serialNumber, [FromQuery] string? machineName = null)
+        {
+            return PrintBySerialNumberCore(
+                manufacturingOrderUid,
+                productUid,
+                uidUsage,
+                serialNumber,
+                machineName,
+                usePrintJobTransport: false,
+                HttpContext.RequestAborted);
+        }
+
+        private async Task<IActionResult> PrintBySerialNumberCore(
+            int manufacturingOrderUid,
+            string productUid,
+            string uidUsage,
+            int serialNumber,
+            string? machineName,
+            bool usePrintJobTransport,
+            CancellationToken cancellationToken)
         {
             if (manufacturingOrderUid <= 0 || string.IsNullOrWhiteSpace(productUid) || string.IsNullOrWhiteSpace(uidUsage) || serialNumber < 0)
             {
@@ -815,20 +836,22 @@ namespace Api.PrinterProd.Controllers
 
                 _labelTemplateProcessor.ProcessTemplateUnitSerial(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, serialNumber, article, kitTracea, _configuration, outputFile.Path);
 
-                // Impression via FTP pour la production
-                bool printSuccess = machineName == null
-                    ? _printer.PrintBySerialNumberFtp(outputFile.Path)
-                    : _printer.PrintBySerialNumberFtp(machineName, outputFile.Path);
+                // Le endpoint Jobs sélectionne RAW TCP si le poste est configuré ainsi ; les autres parcours restent en FTP.
+                bool printSuccess = usePrintJobTransport && machineName != null
+                    ? await _printer.PrintJobFileAsync(machineName, outputFile.Path, cancellationToken)
+                    : machineName == null
+                        ? _printer.PrintBySerialNumberFtp(outputFile.Path)
+                        : _printer.PrintBySerialNumberFtp(machineName, outputFile.Path);
                 if (!printSuccess)
                 {
-                    Log.Error("L'impression FTP a échoué pour le numéro de série: {serialNumber}", serialNumber);
+                    Log.Error("La transmission de l'impression a échoué pour le numéro de série: {serialNumber}", serialNumber);
                     int statusCode = machineName == null
                         ? StatusCodes.Status500InternalServerError
                         : StatusCodes.Status503ServiceUnavailable;
                     return StatusCode(statusCode, new ProblemDetails
                     {
                         Title = "Erreur d'impression",
-                        Detail = "L'impression via FTP a échoué.",
+                        Detail = "La transmission vers l'imprimante a échoué.",
                         Status = statusCode
                     });
                 }

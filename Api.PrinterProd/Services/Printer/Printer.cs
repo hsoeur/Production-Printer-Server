@@ -3,6 +3,7 @@ using CmdGenerator;
 using Serilog;
 using System.Diagnostics;
 using System.Collections.Concurrent;
+using System.Net.Sockets;
 
 namespace Api.PrinterProd.Services.Printer
 {
@@ -10,6 +11,7 @@ namespace Api.PrinterProd.Services.Printer
     {
         private readonly IConfiguration _configuration;
         private readonly ConcurrentDictionary<string, object> _machineLocks = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, SemaphoreSlim> _rawTcpMachineLocks = new(StringComparer.OrdinalIgnoreCase);
 
         public Printer(IConfiguration configuration)
         {
@@ -247,8 +249,116 @@ namespace Api.PrinterProd.Services.Printer
 
         public bool IsSerialNumberPrinterConfigured(string machineName)
         {
-            return !string.IsNullOrWhiteSpace(machineName)
-                && _configuration.GetSection($"Printer:Ftp:Machines:{machineName.Trim()}").Exists();
+            if (string.IsNullOrWhiteSpace(machineName))
+            {
+                return false;
+            }
+
+            string normalizedMachineName = machineName.Trim();
+            return _configuration.GetSection($"Printer:RawTcp:Machines:{normalizedMachineName}").Exists()
+                || _configuration.GetSection($"Printer:Ftp:Machines:{normalizedMachineName}").Exists();
+        }
+
+        public async Task<bool> PrintJobFileAsync(string machineName, string filePath, CancellationToken cancellationToken)
+        {
+            string normalizedMachineName = machineName.Trim();
+            string rawTcpConfigurationPath = $"Printer:RawTcp:Machines:{normalizedMachineName}";
+
+            if (!_configuration.GetSection(rawTcpConfigurationPath).Exists())
+            {
+                return PrintBySerialNumberFtp(normalizedMachineName, filePath);
+            }
+
+            return await PrintRawTcpAsync(normalizedMachineName, rawTcpConfigurationPath, filePath, cancellationToken);
+        }
+
+        private async Task<bool> PrintRawTcpAsync(
+            string machineName,
+            string configurationPath,
+            string filePath,
+            CancellationToken cancellationToken)
+        {
+            if (!File.Exists(filePath))
+            {
+                Log.Error("Le fichier d'impression {FilePath} n'existe pas pour le poste {MachineName}", filePath, machineName);
+                return false;
+            }
+
+            string server = _configuration.GetRequiredString($"{configurationPath}:Server");
+            int port = _configuration.GetValue<int?>($"{configurationPath}:Port") ?? 9100;
+            int timeoutSeconds = _configuration.GetValue<int?>($"{configurationPath}:TimeoutSeconds") ?? 10;
+
+            if (port is < 1 or > 65535)
+            {
+                Log.Error("Port RAW TCP invalide {Port} pour le poste {MachineName}", port, machineName);
+                return false;
+            }
+
+            if (timeoutSeconds <= 0)
+            {
+                Log.Error("Timeout RAW TCP invalide {TimeoutSeconds} pour le poste {MachineName}", timeoutSeconds, machineName);
+                return false;
+            }
+
+            SemaphoreSlim machineLock = _rawTcpMachineLocks.GetOrAdd(machineName, _ => new SemaphoreSlim(1, 1));
+            await machineLock.WaitAsync(cancellationToken);
+
+            try
+            {
+                byte[] content = await File.ReadAllBytesAsync(filePath, cancellationToken);
+                using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutSource.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+                var stopwatch = Stopwatch.StartNew();
+                using var client = new TcpClient();
+
+                Log.Information(
+                    "Envoi RAW TCP de {ByteCount} octets vers {Server}:{Port} pour le poste {MachineName}",
+                    content.Length,
+                    server,
+                    port,
+                    machineName);
+
+                await client.ConnectAsync(server, port, timeoutSource.Token);
+                await using NetworkStream stream = client.GetStream();
+                await stream.WriteAsync(content, timeoutSource.Token);
+                await stream.FlushAsync(timeoutSource.Token);
+                stopwatch.Stop();
+
+                Log.Information(
+                    "Commande RAW TCP transmise au poste {MachineName} en {ElapsedMilliseconds} ms",
+                    machineName,
+                    stopwatch.ElapsedMilliseconds);
+                return true;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                Log.Error(
+                    "Timeout lors de l'envoi RAW TCP vers {Server}:{Port} pour le poste {MachineName}",
+                    server,
+                    port,
+                    machineName);
+                return false;
+            }
+            catch (OperationCanceledException)
+            {
+                Log.Warning("Envoi RAW TCP annulé pour le poste {MachineName}", machineName);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(
+                    ex,
+                    "Erreur lors de l'envoi RAW TCP vers {Server}:{Port} pour le poste {MachineName}",
+                    server,
+                    port,
+                    machineName);
+                return false;
+            }
+            finally
+            {
+                machineLock.Release();
+            }
         }
 
         public bool PrintBySerialNumberFtp(string machineName, string filePath)
