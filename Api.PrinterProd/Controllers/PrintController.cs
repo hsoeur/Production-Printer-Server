@@ -1,4 +1,5 @@
 using Api.PrinterProd.Configuration;
+using Api.PrinterProd.Models;
 using Api.PrinterProd.Services.api_data;
 using Api.PrinterProd.Services.Labels;
 using Api.PrinterProd.Services.Printer;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using System;
+using System.Text.RegularExpressions;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Api.PrinterProd.Controllers
@@ -636,6 +638,60 @@ namespace Api.PrinterProd.Controllers
             return Ok("");
         }
 
+        [SwaggerOperation(
+        Summary = "Création d'un travail d'impression par numéro de série",
+        Description = "Imprime l'étiquette sur l'imprimante FTP associée au nom unique du poste.",
+        OperationId = "CreatePrintJob"
+        )]
+        [HttpPost("/api/Print/jobs")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(PrintJobResponse))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+        public async Task<IActionResult> CreatePrintJob([FromBody] CreatePrintJobRequest request)
+        {
+            IActionResult? validationResult = ValidatePrintJobRequest(request);
+            if (validationResult != null)
+            {
+                return validationResult;
+            }
+
+            string machineName = request.MachineName.Trim();
+
+            if (!_printer.IsSerialNumberPrinterConfigured(machineName))
+            {
+                Log.Warning("Unknown production machine {MachineName} for job {JobId}", machineName, request.JobId);
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Poste inconnu",
+                    Detail = $"Aucune imprimante n'est configurée pour le poste '{machineName}'.",
+                    Status = StatusCodes.Status404NotFound
+                });
+            }
+
+            IActionResult result = await PrintBySerialNumber(
+                request.ManufacturingOrderUid,
+                request.ProductUid,
+                request.UidUsage,
+                request.SerialNumber,
+                machineName);
+
+            if (result is not OkObjectResult)
+            {
+                return result;
+            }
+
+            var response = new PrintJobResponse
+            {
+                JobId = request.JobId,
+                MachineName = machineName,
+                Status = "Printed"
+            };
+
+            return Ok(response);
+        }
+
         /// <summary>
         /// Méthode PrintBySerialNumber responsable de l'impression d'une étiquette pour un numéro de série spécifique.
         /// </summary>
@@ -649,7 +705,7 @@ namespace Api.PrinterProd.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> PrintBySerialNumber([FromQuery] int manufacturingOrderUid, [FromQuery] string productUid, [FromQuery] string uidUsage, [FromQuery] int serialNumber)
+        public async Task<IActionResult> PrintBySerialNumber([FromQuery] int manufacturingOrderUid, [FromQuery] string productUid, [FromQuery] string uidUsage, [FromQuery] int serialNumber, [FromQuery] string? machineName = null)
         {
             if (manufacturingOrderUid <= 0 || string.IsNullOrWhiteSpace(productUid) || string.IsNullOrWhiteSpace(uidUsage) || serialNumber < 0)
             {
@@ -760,14 +816,20 @@ namespace Api.PrinterProd.Controllers
                 _labelTemplateProcessor.ProcessTemplateUnitSerial(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, serialNumber, article, kitTracea, _configuration, outputFile.Path);
 
                 // Impression via FTP pour la production
-                bool printSuccess = _printer.PrintBySerialNumberFtp(outputFile.Path);
+                bool printSuccess = machineName == null
+                    ? _printer.PrintBySerialNumberFtp(outputFile.Path)
+                    : _printer.PrintBySerialNumberFtp(machineName, outputFile.Path);
                 if (!printSuccess)
                 {
                     Log.Error("L'impression FTP a échoué pour le numéro de série: {serialNumber}", serialNumber);
-                    return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                    int statusCode = machineName == null
+                        ? StatusCodes.Status500InternalServerError
+                        : StatusCodes.Status503ServiceUnavailable;
+                    return StatusCode(statusCode, new ProblemDetails
                     {
                         Title = "Erreur d'impression",
-                        Detail = "L'impression via FTP a échoué."
+                        Detail = "L'impression via FTP a échoué.",
+                        Status = statusCode
                     });
                 }
 
@@ -783,6 +845,51 @@ namespace Api.PrinterProd.Controllers
                     Detail = ex.Message
                 });
             }
+        }
+
+        private IActionResult? ValidatePrintJobRequest(CreatePrintJobRequest request)
+        {
+            var errors = new Dictionary<string, string[]>();
+
+            if (string.IsNullOrWhiteSpace(request.JobId) || request.JobId.Length > 512)
+            {
+                errors["jobId"] = ["Le jobId est obligatoire et ne doit pas dépasser 512 caractères."];
+            }
+
+            if (string.IsNullOrWhiteSpace(request.MachineName)
+                || request.MachineName.Length > 100
+                || !Regex.IsMatch(request.MachineName, "^[A-Za-z0-9_.-]+$"))
+            {
+                errors["machineName"] = ["Le nom du poste est obligatoire et ne peut contenir que des lettres, chiffres, points, tirets et underscores."];
+            }
+
+            if (request.ManufacturingOrderUid <= 0)
+            {
+                errors["manufacturingOrderUid"] = ["L'identifiant d'ordre de fabrication doit être positif."];
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ProductUid))
+            {
+                errors["productUid"] = ["L'identifiant produit est obligatoire."];
+            }
+
+            if (string.IsNullOrWhiteSpace(request.UidUsage))
+            {
+                errors["uidUsage"] = ["L'usage est obligatoire."];
+            }
+
+            if (request.SerialNumber < 0)
+            {
+                errors["serialNumber"] = ["Le numéro de série ne peut pas être négatif."];
+            }
+
+            return errors.Count == 0
+                ? null
+                : BadRequest(new ValidationProblemDetails(errors)
+                {
+                    Title = "Requête d'impression invalide",
+                    Status = StatusCodes.Status400BadRequest
+                });
         }
 
         private string SuccessResponse => _configuration.GetRequiredString("Application:SuccessResponse");

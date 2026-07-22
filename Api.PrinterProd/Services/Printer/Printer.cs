@@ -2,12 +2,14 @@ using Api.PrinterProd.Configuration;
 using CmdGenerator;
 using Serilog;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 
 namespace Api.PrinterProd.Services.Printer
 {
     public class Printer : IPrinter
     {
         private readonly IConfiguration _configuration;
+        private readonly ConcurrentDictionary<string, object> _machineLocks = new(StringComparer.OrdinalIgnoreCase);
 
         public Printer(IConfiguration configuration)
         {
@@ -240,7 +242,27 @@ namespace Api.PrinterProd.Services.Printer
             string ftpServer = _configuration.GetRequiredString("Printer:Ftp:SerialNumber:Server");
             string ftpUser = _configuration.GetRequiredString("Printer:Ftp:SerialNumber:User");
             string ftpPassword = _configuration.GetRequiredString("Printer:Ftp:SerialNumber:Password");
-            Log.Information("🚀 Début du processus d'impression FTP pour PrintBySerialNumber...");
+            return PrintBySerialNumberFtp("legacy", ftpServer, ftpUser, ftpPassword, filePath);
+        }
+
+        public bool IsSerialNumberPrinterConfigured(string machineName)
+        {
+            return !string.IsNullOrWhiteSpace(machineName)
+                && _configuration.GetSection($"Printer:Ftp:Machines:{machineName.Trim()}").Exists();
+        }
+
+        public bool PrintBySerialNumberFtp(string machineName, string filePath)
+        {
+            string configurationPath = $"Printer:Ftp:Machines:{machineName.Trim()}";
+            string ftpServer = _configuration.GetRequiredString($"{configurationPath}:Server");
+            string ftpUser = _configuration.GetRequiredString($"{configurationPath}:User");
+            string ftpPassword = _configuration.GetRequiredString($"{configurationPath}:Password");
+            return PrintBySerialNumberFtp(machineName.Trim(), ftpServer, ftpUser, ftpPassword, filePath);
+        }
+
+        private bool PrintBySerialNumberFtp(string machineName, string ftpServer, string ftpUser, string ftpPassword, string filePath)
+        {
+            Log.Information("Début du processus d'impression FTP pour le poste {MachineName}", machineName);
 
             if (!File.Exists(filePath))
             {
@@ -265,7 +287,11 @@ namespace Api.PrinterProd.Services.Printer
                 }
 
                 // 🔹 Exécution de la commande FTP
-                return ExecuteFtpCommandForSerial(ftpServer, ftpUser, ftpPassword, filePath);
+                object machineLock = _machineLocks.GetOrAdd(machineName, _ => new object());
+                lock (machineLock)
+                {
+                    return ExecuteFtpCommandForSerial(ftpServer, ftpUser, ftpPassword, filePath);
+                }
             }
             catch (Exception ex)
             {
@@ -279,23 +305,29 @@ namespace Api.PrinterProd.Services.Printer
         /// </summary>
         private bool ExecuteFtpCommandForSerial(string ftpServer, string ftpUser, string ftpPassword, string filePath)
         {
-            string ftpUrl = $"ftp://{ftpUser}:{ftpPassword}@{ftpServer}/";
-            string command = $"curl -v -T \"{filePath}\" {ftpUrl}";
+            string ftpUrl = $"ftp://{ftpServer}/";
 
             Log.Information($"🚀 Envoi du fichier {filePath} vers {ftpServer} via FTP...");
-            Log.Debug($"Commande curl : {command}");
 
             try
             {
                 ProcessStartInfo startInfo = new ProcessStartInfo
                 {
-                    FileName = "/bin/sh",
-                    Arguments = $"-c \"{command}\"",
+                    FileName = "curl",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
+
+                startInfo.ArgumentList.Add("--fail");
+                startInfo.ArgumentList.Add("--silent");
+                startInfo.ArgumentList.Add("--show-error");
+                startInfo.ArgumentList.Add("--user");
+                startInfo.ArgumentList.Add($"{ftpUser}:{ftpPassword}");
+                startInfo.ArgumentList.Add("-T");
+                startInfo.ArgumentList.Add(filePath);
+                startInfo.ArgumentList.Add(ftpUrl);
 
                 using Process process = new Process { StartInfo = startInfo };
                 process.Start();

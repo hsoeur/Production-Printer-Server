@@ -1,5 +1,20 @@
 @baseUrl = http://localhost:5298
 
+### Nouveau contrat utilisé par UI Test GSM
+POST {{baseUrl}}/api/Print/jobs
+Content-Type: application/json
+
+{
+  "jobId": "MO03A-26474-100016-Gateway-Montage-Portail-ASM-TKE",
+  "machineName": "MO03A",
+  "manufacturingOrderUid": 26474,
+  "productUid": "51PT00634A",
+  "uidUsage": "Gateway Montage Portail ASM TKE",
+  "serialNumber": 100016
+}
+
+###
+
 ### 🔹 Cas 1
 @uidUsage1 = Gateway Montage Portail ASM TKE
 
