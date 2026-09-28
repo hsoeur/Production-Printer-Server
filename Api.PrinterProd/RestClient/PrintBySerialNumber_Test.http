@@ -1,4 +1,4 @@
-@baseUrl = http://localhost:5298
+@baseUrl = http://localhost:12003
 
 ### Nouveau contrat utilisé par UI Test GSM
 POST {{baseUrl}}/api/Print/jobs

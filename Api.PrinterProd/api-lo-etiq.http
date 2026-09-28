@@ -1,4 +1,4 @@
-@api_lo_etiq_HostAddress = http://localhost:5298
+@api_lo_etiq_HostAddress = http://localhost:12003
 
 GET {{api_lo_etiq_HostAddress}}/weatherforecast/
 Accept: application/json

@@ -1,5 +1,5 @@
 trigger:
-- main
+- master
 
 pool:
   name: Default
@@ -8,13 +8,13 @@ pool:
 
 variables:
   BUILD_CONFIGURATION: 'Release'
-  IMAGE_NAME: 'api_etiq_image'
+  IMAGE_NAME: 'api_printerprod_12003_image'
   SERVER_USER: 'adminprod'  
   SERVER_IP: '192.168.1.104'  
-  SERVER_PATH: 'C:\Deploy\containers\api_etiq_container'  
-  CONTAINER_NAME: 'api_etiq_container'
+  SERVER_PATH: 'C:\Deploy\containers\api_printerprod_12003_container'
+  CONTAINER_NAME: 'api_printerprod_12003_container'
   SSH_PASSWORD: 'Paris2024JO*'  # Variable secrète stockée dans Azure DevOps
-  APP_PORT: '7001'  # Port d'écoute de l'API
+  APP_PORT: '12003'  # Port d'écoute de la nouvelle API, en parallèle de l'existante
 
 stages:
 - stage: Build
