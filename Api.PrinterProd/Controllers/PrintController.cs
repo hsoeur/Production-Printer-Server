@@ -277,7 +277,7 @@ namespace Api.PrinterProd.Controllers
                 }
 
                 _labelTemplateProcessor.ProcessTemplatePartialPrint(ordreFabrication, versionArticle, usageCorrespondanceProduit, date, userUid, article, printQuantity, _configuration, outputFile.Path);
-                int res = _labelsCreator.ProcessAndCreateLabelsPartialPrint(date, userUid, ordreFabrication, usageCorrespondanceProduit, versionArticle, printQuantity, outputFile.Path);
+                int res = await _labelsCreator.ProcessAndCreateLabelsPartialPrint(date, userUid, ordreFabrication, usageCorrespondanceProduit, versionArticle, printQuantity, outputFile.Path);
 
                 if (res == -1)
                 {

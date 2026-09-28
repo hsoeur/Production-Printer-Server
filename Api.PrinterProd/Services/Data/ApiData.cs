@@ -4,7 +4,6 @@ using DataLib;
 using Newtonsoft.Json;
 using Serilog;
 using System.Text;
-using System.Text.Json;
 
 namespace Api.PrinterProd.Services.api_data
 {
@@ -102,6 +101,21 @@ namespace Api.PrinterProd.Services.api_data
             }
         }
 
+        public async Task CreateEtiquettes(IReadOnlyCollection<LabelDto> requests)
+        {
+            if (requests.Count == 0)
+            {
+                return;
+            }
+
+            string uri = GetEndpoint("CreateLabels");
+            var json = JsonConvert.SerializeObject(requests);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var response = await _httpClient.PostAsync(uri, content);
+
+            response.EnsureSuccessStatusCode();
+        }
+
         public async Task<bool> EtiquetteAlreadyExists(string uidAuthenti)
         {
             var uri = FormatEndpoint("LabelExistsByAuthentiUid", ("authentiUid", uidAuthenti));
@@ -140,6 +154,11 @@ namespace Api.PrinterProd.Services.api_data
 
             var response = await _httpClient.GetAsync(uri);
 
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
@@ -166,6 +185,11 @@ namespace Api.PrinterProd.Services.api_data
 
             var response = await _httpClient.GetAsync(uri);
 
+            if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                return [];
+            }
+
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
@@ -173,11 +197,16 @@ namespace Api.PrinterProd.Services.api_data
             return JsonConvert.DeserializeObject<List<Label>>(content);
         }
 
-        public async Task<Label> GetLabelLastSerialNumberPrinted(int manufacturingOrderUid)
+        public async Task<Label?> GetLabelLastSerialNumberPrinted(int manufacturingOrderUid)
         {
             var uri = FormatEndpoint("LastSerialNumberByManufacturingOrder", ("manufacturingOrderUid", manufacturingOrderUid.ToString()));
 
             var response = await _httpClient.GetAsync(uri);
+
+            if (response.StatusCode is System.Net.HttpStatusCode.NoContent or System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
 
             response.EnsureSuccessStatusCode();
 
@@ -196,12 +225,7 @@ namespace Api.PrinterProd.Services.api_data
 
                 var json = await response.Content.ReadAsStringAsync();
 
-                var user = System.Text.Json.JsonSerializer.Deserialize<User>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                return user!;
+                return JsonConvert.DeserializeObject<User>(json)!;
             }
             catch (HttpRequestException httpEx)
             {

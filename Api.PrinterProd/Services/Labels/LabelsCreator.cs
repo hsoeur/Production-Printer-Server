@@ -144,237 +144,99 @@ namespace Api.PrinterProd.Services.Labels
         /// <returns></returns>
         public async Task<int> ProcessAndCreateLabelsCommon(DateTimeOffset date, string uidOperateur, ManufacturingOrder? ordreFabrication, LabelTemplate? usageTemplate, FirmwareVersion? version, string outputFilePath)
         {
-            int currentSN = ordreFabrication.FirstSerialNumber;
+            ArgumentNullException.ThrowIfNull(ordreFabrication);
+            ArgumentNullException.ThrowIfNull(usageTemplate);
+            ArgumentNullException.ThrowIfNull(version);
 
-            /*
-            if (!int.TryParse(ordreFabrication.Quantity.Trim(), out ofQuantity))
+            var labels = await _apiData.GetCollectionLabelsByManufacturingOrderUid(ordreFabrication.ManufacturingOrderUid) ?? [];
+            var usageLabels = labels.Where(label => label.LabelTypeUid == usageTemplate.LabelTypeUid).ToList();
+
+            if (usageLabels.Count >= ordreFabrication.Quantity)
             {
-                // Si Quantity contient un point décimal, essayer de convertir en double puis en entier
-                if (double.TryParse(ordreFabrication.Quantity.Trim(), out double parsedValue))
-                {
-                    ofQuantity = (int)Math.Floor(parsedValue); // Arrondi vers le bas si nécessaire
-                }
-                else
-                {
-                    throw new FormatException($"Invalid format for Quantity: {ordreFabrication.Quantity}");
-                }
-            }
-            */
-
-            bool isLabelInDb = false;
-            int quantite;
-            string persoUsage = GetFirstThreeLettersOfSecondWordInUpperCase(usageTemplate.LabelTypeUid);
-            int ret =0;
-
-            List<Label> labels = await _apiData.GetCollectionLabelsByManufacturingOrderUid(ordreFabrication.ManufacturingOrderUid);
-
-            if(labels == null)
-            {
-                labels = new List<Label>();
-            }
-            
-            if (labels.Count == ordreFabrication.Quantity && usageTemplate.LabelTemplateUid == labels.First().LabelTypeUid)
-            {
-                ret = -1;
+                return -1;
             }
 
-            else if (labels.Count < ordreFabrication.Quantity && labels.Count !=0)
+            var existingAuthentiUids = labels
+                .Select(label => label.AuthentiUid)
+                .ToHashSet(StringComparer.Ordinal);
+            var labelsToCreate = new List<LabelDto>(ordreFabrication.Quantity - usageLabels.Count);
+            var usagePrefix = GetFirstThreeLettersOfSecondWordInUpperCase(usageTemplate.LabelTypeUid);
+            var firstSerialNumber = usageLabels.Count == 0
+                ? ordreFabrication.FirstSerialNumber
+                : usageLabels.Max(label => label.CurrentSerialNumber) + 1;
+            var quantity = ordreFabrication.Quantity - usageLabels.Count;
+
+            for (var serialNumber = firstSerialNumber; serialNumber < firstSerialNumber + quantity; serialNumber++)
             {
-                int remainingQuantity = ordreFabrication.Quantity - labels.Count;
-                Label label = await _apiData.GetLabelLastSerialNumberPrinted(ordreFabrication.ManufacturingOrderUid);
-                
-                int currentSerialNumber = label.CurrentSerialNumber +1;
+                var effectiveSerialNumber = ordreFabrication.FirstSerialNumber == 0 ? 0 : serialNumber;
+                var label = BuildLabel(date, uidOperateur, ordreFabrication, usageTemplate, version, effectiveSerialNumber, usagePrefix);
 
-                for (int i = currentSerialNumber; i < currentSerialNumber + remainingQuantity; i++)
+                if (!existingAuthentiUids.Add(label.AuthentiUid))
                 {
-                    int currentSnString = i;
-
-                    if (ordreFabrication.FirstSerialNumber ==0)
-                    {
-                        currentSnString = 0;
-                        LabelDto etiWithoutSN = new LabelDto
-                        {
-                            AuthentiUid = BuildAuthentiUid(ordreFabrication.ProductUid, currentSnString, persoUsage),
-                            UserUid = uidOperateur,
-                            ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
-                            CreationDate = date,
-                            CurrentSerialNumber = currentSnString,
-                            ProductVersion = version.Version,
-                            LabelTypeUid = usageTemplate.LabelTypeUid,
-                            Template = usageTemplate.TemplateFile,
-                            ProductUid = ordreFabrication.ProductUid
-                        };
-
-                        _apiData.CreateEtiquette(etiWithoutSN);
-                        Log.Debug($"Création d'une étiquette sans numéro de série: {etiWithoutSN.AuthentiUid}, {etiWithoutSN.UserUid}, {etiWithoutSN.ManufacturingOrderUid}, {etiWithoutSN.CreationDate}, {etiWithoutSN.CurrentSerialNumber}, {etiWithoutSN.ProductUid}, {etiWithoutSN.LabelTypeUid}");
-                    }
-                    else
-                    {
-                        LabelDto etiDto = new LabelDto
-                        {
-                            AuthentiUid = BuildAuthentiUid(ordreFabrication.ProductUid, currentSnString, persoUsage),
-                            UserUid = uidOperateur,
-                            ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
-                            CreationDate = date,
-                            CurrentSerialNumber = currentSnString,
-                            ProductVersion = version.Version,
-                            LabelTypeUid = usageTemplate.LabelTypeUid,
-                            Template = usageTemplate.TemplateFile,
-                            ProductUid = ordreFabrication.ProductUid
-                        };
-
-                        isLabelInDb = _apiData.EtiquetteAlreadyExists(etiDto.AuthentiUid).Result;
-
-                        if (isLabelInDb)
-                        {
-                            Log.Error($"ScanViewModel::PrintLabels() -- {etiDto.AuthentiUid} existe déjà dans la base.");
-                            return -1;
-                        }
-                        else
-                        {
-                            _apiData.CreateEtiquette(etiDto);
-                            Log.Debug($"Création d'une étiquette : {etiDto.AuthentiUid}, {etiDto.UserUid}, {etiDto.ManufacturingOrderUid}, {etiDto.CreationDate}, {etiDto.CurrentSerialNumber}, {etiDto.ProductVersion}, {etiDto.LabelTypeUid}");
-                        }
-                    }
+                    Log.Error("Label {AuthentiUid} already exists in the manufacturing order", label.AuthentiUid);
+                    return -1;
                 }
 
-                if (!isLabelInDb)
-                {
-                    ExecutePrinting(usageTemplate, outputFilePath);
-                }
-
-                return 0;
-
-            }
-            else
-            {
-                ret = NominalLabelCreation(date, uidOperateur, ordreFabrication, usageTemplate, version, currentSN, out isLabelInDb, out quantite, persoUsage, outputFilePath);
+                labelsToCreate.Add(label);
             }
 
-            return ret;
-        }
-
-
-
-        private int NominalLabelCreation(DateTimeOffset date, string uidOperateur, ManufacturingOrder? ordreFabrication, LabelTemplate? usageTemplate, FirmwareVersion? version, int currentSN, out bool isLabelInDb, out int quantite, string persoUsage, string outputFilePath)
-        {
-            ParseQuantityOF(ordreFabrication.Quantity, out isLabelInDb, out quantite);
-
-            for (int i = currentSN; i < currentSN + quantite; i++)
-            {
-                int currentSnString = i;
-
-                if (ordreFabrication.FirstSerialNumber ==0)
-                {
-                    currentSnString = 0;
-                    LabelDto etiWithoutSN = new LabelDto
-                    {
-                        AuthentiUid = BuildAuthentiUid(ordreFabrication.ProductUid, currentSnString, persoUsage),
-                        UserUid = uidOperateur,
-                        ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
-                        CreationDate = date,
-                        CurrentSerialNumber = currentSnString,
-                        ProductVersion = version.Version,
-                        LabelTypeUid = usageTemplate.LabelTypeUid,
-                        Template = usageTemplate.TemplateFile,
-                        ProductUid = ordreFabrication.ProductUid
-                    };
-
-                    _apiData.CreateEtiquette(etiWithoutSN);
-                    Log.Debug($"Création d'une étiquette sans numéro de série: {etiWithoutSN.AuthentiUid}, {etiWithoutSN.UserUid}, {etiWithoutSN.ManufacturingOrderUid}, {etiWithoutSN.CreationDate}, {etiWithoutSN.CurrentSerialNumber}, {etiWithoutSN.ProductUid}, {etiWithoutSN.LabelTypeUid}");
-                }
-                else
-                {
-                    LabelDto etiDto = new LabelDto
-                    {
-                        AuthentiUid = BuildAuthentiUid(ordreFabrication.ProductUid, currentSnString, persoUsage),
-                        UserUid = uidOperateur,
-                        ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
-                        CreationDate = date,
-                        CurrentSerialNumber = currentSnString,
-                        ProductVersion = version.Version,
-                        LabelTypeUid = usageTemplate.LabelTypeUid,
-                        Template = usageTemplate.TemplateFile,
-                        ProductUid = ordreFabrication.ProductUid
-                    };
-
-                    isLabelInDb = _apiData.EtiquetteAlreadyExists(etiDto.AuthentiUid).Result;
-
-                    if (isLabelInDb)
-                    {
-                        Log.Error($"ScanViewModel::PrintLabels() -- {etiDto.AuthentiUid} existe déjà dans la base.");
-                        return -1;
-                    }
-                    else
-                    {
-                        _apiData.CreateEtiquette(etiDto);
-                        Log.Debug($"Création d'une étiquette : {etiDto.AuthentiUid}, {etiDto.UserUid}, {etiDto.ManufacturingOrderUid}, {etiDto.CreationDate}, {etiDto.CurrentSerialNumber}, {etiDto.ProductVersion}, {etiDto.LabelTypeUid}");
-                    }
-                }
-            }
-
-            if (!isLabelInDb)
-            {
-                ExecutePrinting(usageTemplate, outputFilePath);
-            }
-
+            await PersistLabelsAndPrint(labelsToCreate, usageTemplate, outputFilePath);
             return 0;
         }
 
-        public int ProcessAndCreateLabelsPartialPrint(DateTimeOffset date, string userUid, ManufacturingOrder ordreFabrication, LabelTemplate template, FirmwareVersion version, int printQuantity, string outputFilePath)
+        public async Task<int> ProcessAndCreateLabelsPartialPrint(DateTimeOffset date, string userUid, ManufacturingOrder ordreFabrication, LabelTemplate template, FirmwareVersion version, int printQuantity, string outputFilePath)
         {
-            try
+            var labels = await _apiData.GetCollectionLabelsByManufacturingOrderUid(ordreFabrication.ManufacturingOrderUid) ?? [];
+            var existingAuthentiUids = labels
+                .Select(label => label.AuthentiUid)
+                .ToHashSet(StringComparer.Ordinal);
+            var labelsToCreate = new List<LabelDto>(printQuantity);
+            var usagePrefix = GetFirstThreeLettersOfSecondWordInUpperCase(template.LabelTypeUid);
+
+            for (var serialNumber = ordreFabrication.FirstSerialNumber; serialNumber < ordreFabrication.FirstSerialNumber + printQuantity; serialNumber++)
             {
-                int currentSN = ordreFabrication.FirstSerialNumber;
-                bool isLabelInDb;
-                int quantite;
-                string persoUsage = GetFirstThreeLettersOfSecondWordInUpperCase(template.LabelTypeUid);
+                var label = BuildLabel(date, userUid, ordreFabrication, template, version, serialNumber, usagePrefix);
 
-                ParseQuantityOF(printQuantity, out isLabelInDb, out quantite);
-
-                for (int i = currentSN; i < currentSN + quantite; i++)
+                if (!existingAuthentiUids.Add(label.AuthentiUid))
                 {
-
-                    int currentSnString = i;
-
-                    LabelDto etiDto = new LabelDto
-                    {
-                        AuthentiUid = BuildAuthentiUid(ordreFabrication.ProductUid, currentSnString, persoUsage),
-                        UserUid = userUid,
-                        ManufacturingOrderUid = ordreFabrication.ManufacturingOrderUid,
-                        CreationDate = date,
-                        CurrentSerialNumber = currentSnString,
-                        ProductVersion = version.Version,
-                        LabelTypeUid = template.LabelTypeUid,
-                        Template = template.TemplateFile,
-                        ProductUid = ordreFabrication.ProductUid
-                    };
-
-                    isLabelInDb = _apiData.EtiquetteAlreadyExists(etiDto.AuthentiUid).Result;
-
-                    if (isLabelInDb)
-                    {
-                        Log.Error($"ScanViewModel::PrintLabels() -- {etiDto.AuthentiUid} existe déjà dans la base.");
-                        return -1;
-                    }
-                    else
-                    {
-                        _apiData.CreateEtiquette(etiDto);
-                        Log.Debug($"Création d'une étiquette : {etiDto.AuthentiUid}, {etiDto.UserUid}, {etiDto.ManufacturingOrderUid}, {etiDto.CreationDate}, {etiDto.CurrentSerialNumber}, {etiDto.ProductVersion}, {etiDto.LabelTypeUid}");
-                    }
+                    Log.Error("Label {AuthentiUid} already exists in the manufacturing order", label.AuthentiUid);
+                    return -1;
                 }
 
-                if (!isLabelInDb)
-                {
-                    ExecutePrinting(template, outputFilePath);
-                }
+                labelsToCreate.Add(label);
+            }
 
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            await PersistLabelsAndPrint(labelsToCreate, template, outputFilePath);
+            return 0;
+        }
+
+        private LabelDto BuildLabel(
+            DateTimeOffset date,
+            string userUid,
+            ManufacturingOrder manufacturingOrder,
+            LabelTemplate template,
+            FirmwareVersion version,
+            int serialNumber,
+            string usagePrefix) => new()
+        {
+            AuthentiUid = BuildAuthentiUid(manufacturingOrder.ProductUid, serialNumber, usagePrefix),
+            UserUid = userUid,
+            ManufacturingOrderUid = manufacturingOrder.ManufacturingOrderUid,
+            CreationDate = date,
+            CurrentSerialNumber = serialNumber,
+            ProductVersion = version.Version,
+            LabelTypeUid = template.LabelTypeUid,
+            Template = template.TemplateFile,
+            ProductUid = manufacturingOrder.ProductUid
+        };
+
+        private async Task PersistLabelsAndPrint(IReadOnlyCollection<LabelDto> labels, LabelTemplate template, string outputFilePath)
+        {
+            await _apiData.CreateEtiquettes(labels);
+            Log.Information("Created {Count} labels in one batch for manufacturing order {ManufacturingOrderUid}",
+                labels.Count,
+                labels.First().ManufacturingOrderUid);
+            ExecutePrinting(template, outputFilePath);
         }
     }
 }
